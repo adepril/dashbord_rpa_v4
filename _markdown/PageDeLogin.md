@@ -105,7 +105,7 @@ body {
 **Modifications apportées :** Ce fichier a été modifié pour :
 - **Inclure les directives Tailwind CSS :** `@tailwind base; @tailwind components; @tailwind utilities;`
 - **Changer les couleurs de fond :** `--background` est passé de `#f3f4f6` à `#ffffff` (mode clair) et de `#111827` à `#0a0a0a` (mode sombre), pour correspondre aux valeurs de `dashboard_rpa_bbl_3`.
-`Ces modifications sont cruciales car elles affectent directement l'apparence générale de l'application, y compris la page de connexion.`
+*Ces modifications sont cruciales car elles affectent directement l'apparence générale de l'application, y compris la page de connexion.*
 
 ### 4. `tailwind.config.ts`
 
