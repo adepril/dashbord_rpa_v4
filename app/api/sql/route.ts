@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
                 // Citation aléatoire
                 query = `SELECT TOP 1 [ID],[CITATION],[AUTEUR] FROM [BD_RPA_TEST].[dbo].[Citations] ORDER BY NEWID()`;
                 result = await executeQuery(query);
-                console.log('Citations result:', result);
+                //console.log('Citations result:', result);
                 if (result.recordset.length > 0) {
                     const citation = result.recordset[0];
                     return NextResponse.json({

@@ -20,14 +20,14 @@ export async function executeQuery(query: string, params?: { name: string; type:
         const result = await request.query(query);
         return result;
     } catch (error) {
-        console.error('SQL query error:', error);
+        console.log('SQL query error:', error);
         throw error;
     } finally {
         try {
             // Fermeture de la connexion
             await sql.close();
         } catch (closeError) {
-            console.error('Error closing SQL connection:', closeError);
+            console.log('Error closing SQL connection:', closeError);
         }
     }
 }

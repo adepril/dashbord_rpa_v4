@@ -12,7 +12,7 @@ export async function connectDB() {
     await sql.connect(config);
     console.log('Connected to SQL Server');
   } catch (err) {
-    console.error('Database connection failed:', err);
+    console.log('Database connection failed:', err);
     throw err;
   }
 }
