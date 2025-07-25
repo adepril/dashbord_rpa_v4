@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affichage des Icônes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+        }
+        .icon {
+            margin: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Icônes des Statuts</h1>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#waiting"></use></svg>
+        <p>En attente de validation</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#validated"></use></svg>
+        <p>Validé par le validateur</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#notValidated"></use></svg>
+        <p>Non validé par le validateur</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#Analyse requise par le développeur"></use></svg>
+        <p>Étude à faire par le développeur</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#planned"></use></svg>
+        <p>Planifié</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#inDevelopment"></use></svg>
+        <p>En développement</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#inProduction"></use></svg>
+        <p>En production</p>
+    </div>
+    <div class="icon">
+        <svg><use xlink:href="statusIcons.svg#notUsed"></use></svg>
+        <p>Non utilisé</p>
+    </div>
+</body>
+</html>

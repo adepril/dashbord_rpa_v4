@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+  <!-- En attente de validation -->
+  <symbol id="En attente de validation" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="blue" strokeWidth="2" fill="lightblue" />
+    <path d="M12 6v6h6" stroke="blue" strokeWidth="2" />
+  </symbol>
+  
+  <!-- Validé par le validateur -->
+  <symbol id="Validé par le validateur" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="green" strokeWidth="2" fill="lightgreen" />
+    <path d="M8 12l2 2 4-4" stroke="green" strokeWidth="2" />
+  </symbol>
+  
+    <!-- En développement -->
+  <symbol id="En développement" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="blue" strokeWidth="2" fill="lightblue" />
+    <path d="M12 6l0 12M6 12l12 0" stroke="navy" strokeWidth="2" />
+  </symbol>
+  
+  <!-- En production -->
+  <symbol id="En production" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="green" strokeWidth="2" fill="lightgreen" />
+    <path d="M7 12l3 3 5-5" stroke="green" stroke-width="2" fill="none" />
+  </symbol>
+
+  <!-- Non validé par le validateur -->
+  <symbol id="Non validé par le validateur" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="red" strokeWidth="2" fill="lightcoral" />
+    <path d="M8 8l8 8M8 16l8-8" stroke="red" strokeWidth="2" />
+  </symbol>
+  
+  <!-- Étude à faire par le développeur -->
+  <symbol id="Analyse par le développeur_old" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="orange" strokeWidth="2" fill="lightyellow" />
+    <path d="M12 6l0 12M6 12l12 0" stroke="orange" strokeWidth="2" />
+  </symbol>
+  
+  <symbol id="Analyse par le développeur" viewBox="0 0 24 24">
+    <!-- Cercle extérieur -->
+    <circle cx="12" cy="12" r="10" stroke="orange" strokeWidth="2" fill="lightyellow" />
+    <!-- Loupe -->
+    <circle cx="11" cy="11" r="4" stroke="orange" strokeWidth="2" fill="none" />
+    <line x1="14" y1="14" x2="17" y2="17" stroke="orange" strokeWidth="2" stroke-linecap="round" />
+  </symbol>
+
+  <!-- Planifié -->
+  <symbol id="Planifié" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="purple" strokeWidth="2" fill="lavender" />
+    <path d="M6 6h12v12H6z" stroke="purple" strokeWidth="2" />
+  </symbol>
+  
+  <!-- Non utilisé -->
+  <symbol id="Non utilisé" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="gray" strokeWidth="2" fill="lightgray" />
+    <path d="M6 6l12 12M6 18l12-12" stroke="gray" strokeWidth="2" />
+  </symbol>
+</svg>

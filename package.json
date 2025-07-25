@@ -1,0 +1,44 @@
+{
+  "name": "dashboard_rpa_bbl",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-slot": "^1.2.3",
+    "chart.js": "^4.4.7",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.525.0",
+    "msnodesqlv8": "^5.1.1",
+    "mssql": "^11.0.1",
+    "next": "15.4.3",
+    "nodemailer": "^6.9.16",
+    "papaparse": "^5.4.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "recharts": "^2.13.3",
+    "tailwind-merge": "^2.5.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/mssql": "^9.1.7",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

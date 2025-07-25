@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0">
+  <!-- En attente de validation -->
+  <symbol id="waiting" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="blue" stroke-width="2" fill="lightblue" />
+    <path d="M12 6v6h6" stroke="blue" stroke-width="2" />
+  </symbol>
+  
+  <!-- Validé par le validateur -->
+  <symbol id="validated" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="green" stroke-width="2" fill="lightgreen" />
+    <path d="M8 12l2 2 4-4" stroke="green" stroke-width="2" />
+  </symbol>
+  
+  <!-- Non validé par le validateur -->
+  <symbol id="notValidated" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="red" stroke-width="2" fill="lightcoral" />
+    <path d="M8 8l8 8M8 16l8-8" stroke="red" stroke-width="2" />
+  </symbol>
+  
+  <!-- Étude à faire par le développeur -->
+  <symbol id="study" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="orange" stroke-width="2" fill="lightyellow" />
+    <path d="M12 6l0 12M6 12l12 0" stroke="orange" stroke-width="2" />
+  </symbol>
+  
+  <!-- Planifié -->
+  <symbol id="planned" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="purple" stroke-width="2" fill="lavender" />
+    <path d="M6 6h12v12H6z" stroke="purple" stroke-width="2" />
+  </symbol>
+  
+  <!-- En développement -->
+  <symbol id="inDevelopment" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="blue" stroke-width="2" fill="lightblue" />
+    <path d="M12 6l0 12M6 12l12 0" stroke="blue" stroke-width="2" />
+  </symbol>
+  
+  <!-- En production -->
+  <symbol id="inProduction" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="green" stroke-width="2" fill="lightgreen" />
+    <path d="M8 12l2 2 4-4" stroke="green" stroke-width="2" />
+  </symbol>
+  
+  <!-- Non utilisé -->
+  <symbol id="notUsed" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="gray" stroke-width="2" fill="lightgray" />
+    <path d="M6 6l12 12M6 18l12-12" stroke="gray" stroke-width="2" />
+  </symbol>
+</svg>
