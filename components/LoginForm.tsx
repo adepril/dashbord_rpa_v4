@@ -51,12 +51,12 @@ export default function LoginForm() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ USER_NAME: username, USER_PASSWORD: password })
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Erreur lors de la connexion:', errorText);
+                console.log('Erreur lors de la connexion:', errorText);
                 setError('Identifiant ou mot de passe incorrect');
                 return;
             }
@@ -72,7 +72,7 @@ export default function LoginForm() {
 
             router.push('/dashboard');
         } catch (err) {
-            console.error('Erreur lors de la connexion:', err);
+            console.log('Erreur lors de la connexion:', err);
             setError('Une erreur est survenue lors de la connexion');
         }
     };
@@ -230,7 +230,7 @@ export default function LoginForm() {
                                     });
                                     setIsModalOpen(false);
                                 } catch (error) {
-                                    console.error('Erreur:', error);
+                                    console.log('Erreur:', error);
                                     toast({
                                         title: "Erreur",
                                         description: "Une erreur est survenue lors de la réinitialisation",

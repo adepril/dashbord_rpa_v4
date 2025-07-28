@@ -1,11 +1,17 @@
+'use client';
+
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import Dashboard from '../../components/Dashboard';
+
+
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <h1 className="text-4xl font-bold mb-8 text-center text-blue-600">
-        Dashboard Discovery One
-      </h1>
-      <p className="text-lg text-gray-700">Welcome to your dashboard!</p>
-      {/* Placeholder for future dashboard components */}
-    </div>
+    <main >
+      <Dashboard />
+    </main>
   );
 }

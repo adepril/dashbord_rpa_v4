@@ -13,7 +13,7 @@ import { Button } from "./ui/button"
 import { fetchStatuts, allRobotsByAgency, fetchEvolutionsByProgram } from '../utils/dataFetcher'
 import MergedRequestForm from './MergedRequestForm'
 
-interface ProgramTableProps {
+interface EvolutionsTableProps {
   robot: string;
   data: any[];
   typeGain: string;  
@@ -30,14 +30,14 @@ interface ProgramTableProps {
 }
 
 
-export default function ProgramTable({robot, data, typeGain, useChart4All, user}: ProgramTableProps): JSX.Element {
+export default function EvolutionsTable({robot, data, typeGain, useChart4All, user}: EvolutionsTableProps): JSX.Element {
   const enhancedUser = {
     ...user,
     userEmail: 'default@example.com',
     superieur: 'defaultSuperieur',
     validateur: 'oui'
   };
-  //console.log('(ProgramTable) robot:', robot, ' data:', data, '  useChart4All:', useChart4All, );
+  //console.log('(EvolutionsTable) robot:', robot, ' data:', data, '  useChart4All:', useChart4All, );
   const [showForm, setShowForm] = useState(false);
   const [popupInfo, setPopupInfo] = useState<{ row: any; position: { x: number; y: number } | null }>({ row: null, position: null });
   const [statuts, setStatuts] = useState<{ [key: string]: string }>({});

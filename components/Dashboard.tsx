@@ -8,15 +8,15 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation';
 import ProgramSelector from './ProgramSelector'
 import Chart from './Chart'
-import ProgramTable from './ProgramTable'
+import EvolutionsTable from './EvolutionsTable'
 import Chart4All from './Chart4All'
 import MergedRequestForm from './MergedRequestForm'
 import AgencySelector from './AgencySelector'
 import ServiceSelector from './ServiceSelector'
 import Image from 'next/image';
 import {
-  fetchAllEvolutions,
-  fetchEvolutionsByProgram,
+  // fetchAllEvolutions,
+  // fetchEvolutionsByProgram,
   formatNumber
 } from '../utils/dataFetcher'
 
@@ -329,10 +329,10 @@ export default function Dashboard() {
                 }
               }
 
-              if (selectedAgency.nomAgence !== 'TOUT') {
-                oneRobotEvolution = await fetchEvolutionsByProgram(robot.robot, selectedMonth);
-                allRobotsEvolution.push(...oneRobotEvolution);
-              }
+              // if (selectedAgency.nomAgence !== 'TOUT') {
+              //   oneRobotEvolution = await fetchEvolutionsByProgram(robot.robot, selectedMonth);
+              //   allRobotsEvolution.push(...oneRobotEvolution);
+              // }
             }
           }
 
@@ -346,13 +346,13 @@ export default function Dashboard() {
             mergedDataType1[dateKey] = arrJoursDuMois_Type1[i - 1];
           }
 
-          if (selectedAgency && selectedAgency.nomAgence === 'TOUT') {
-            oneRobotEvolution = await fetchAllEvolutions();
-            allRobotsEvolution.push(...oneRobotEvolution);
-          }
+          // if (selectedAgency && selectedAgency.nomAgence === 'TOUT') {
+          //   oneRobotEvolution = await fetchAllEvolutions();
+          //   allRobotsEvolution.push(...oneRobotEvolution);
+          // }
 
           setRobotData1(mergedDataType1);
-          setHistoriqueData(allRobotsEvolution);
+          //setHistoriqueData(allRobotsEvolution);
           setUseChart4All(true);
 
           // Recalculer les totaux pour les widgets en fonction des filtres actuels
@@ -430,8 +430,8 @@ export default function Dashboard() {
           setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
           setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
 
-          const oneRobotEvolution = await fetchEvolutionsByProgram(selectedRobotData.robot, selectedMonth);
-          setHistoriqueData(oneRobotEvolution);
+          // const oneRobotEvolution = await fetchEvolutionsByProgram(selectedRobotData.robot, selectedMonth);
+          // setHistoriqueData(oneRobotEvolution);
         }
       }
     };
@@ -679,7 +679,7 @@ export default function Dashboard() {
                 {/* Tableau d'historique des données */}
                 <div className="grid grid-cols-4 gap-4 bg-x-300 mt-5">
                   <div className="col-span-4 w-full">
-                    <ProgramTable
+                    <EvolutionsTable
                       robot={selectedRobot?.robot || ''}
                       data={historiqueData}
                       typeGain={selectedRobot?.type_gain}
