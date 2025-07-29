@@ -18,7 +18,10 @@
 // - cachedReportingData: Données de reporting calculées
 // ------------------------------------------------------------
 
-import { fetchAgenciesByIds, fetchUser, fetchAllRobotsAndBaremes, fetchAllReportingData, fetchAllServices, fetchUserAgencies } from './dataFetcher';
+import {
+          fetchAllReportingData,
+          fetchAllServices
+        } from './dataFetcher';
 
 
 // ============================================================
@@ -31,8 +34,7 @@ import { fetchAgenciesByIds, fetchUser, fetchAllRobotsAndBaremes, fetchAllReport
  * Sortie : un objet Agency avec id, nom et libellé (optionnel).
  */
 export interface Agency {
-  idAgence: string;
-  nomAgence: string;
+  codeAgence: string;
   libelleAgence?: string;
 }
 
@@ -93,14 +95,18 @@ export let cachedServices: string[] = [];
  */
 export async function loadAllAgencies(): Promise<void> {
   try {
-    const data = await fetchAgenciesByIds([]); // Fetch all agencies
+    // Récupérer toutes les agences puis filtrer
+    const response = await fetch('/api/sql?table=AgencesV2');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
     cachedAllAgencies = data.map((agency: any) => ({
-      idAgence: agency.ID_AGENCE,
-      nomAgence: agency.NOM_AGENCE,
+      codeAgence: agency.CODE_AGENCE,
       libelleAgence: agency.LIBELLE_AGENCE
     }));
     // Trier les agences par ordre alphabétique
-    cachedAllAgencies.sort((a, b) => (a.nomAgence || '').localeCompare(b.nomAgence || ''));
+    cachedAllAgencies.sort((a, b) => (a.codeAgence || '').localeCompare(b.codeAgence || ''));
   } catch (error) {
     console.log('Erreur lors du chargement de toutes les agences:', error);
     throw error;
@@ -166,267 +172,11 @@ function notifyRobotDataListeners() {
 let isInitialized = false;
 let isFirstLogin = true;
 
-// ============================================================
-// Fonction d'initialisation des données
-// ------------------------------------------------------------
-/**
- * initializeData
- * -------------------------------------------------------------------
- * Description : 
- *  - Initialise le cache avec les données de l'utilisateur, des agences 
- *    et des robots. Elle récupère d'abord les données utilisateur via fetchUserData.
- *  - Charge ensuite les agences associées à l'utilisateur (loadUserAgencies) 
- *    sauf pour le cas spécial de l'admin (userId === '0').
- *  - Puis charge tous les robots pour ces agences (loadAllRobotsForAgencies).
- * 
- * Entrée : 
- *  - userId (string): Identifiant de l'utilisateur.
- * Sortie : 
- *  - Promise<void> : La fonction met à jour des variables globales en cache.
- * Remarques :
- *  - Si les données ont déjà été initialisées (isInitialized === true), 
- *    la fonction retourne immédiatement pour éviter des appels inutiles.
- */
-export async function initializeData(userId: string): Promise<void> {
-  if (isInitialized) return;
 
-  try {
-    // 1. Récupération des données de l'utilisateur
-    const userData = await fetchUserData(userId);
-    if (!userData) {
-      throw new Error('Utilisateur non trouvé');
-    }
-    //console.log('(dataStore - initializeData) Données utilisateur:', userData);
 
-    // 2. Chargement des agences
-    if (userId === '0') {
-      // Cas spécial pour l'admin : charger toutes les agences
-      await loadAllAgencies();
-      //console.log('(dataStore - initializeData) Toutes les Agences chargées');
-    } else {
-      // Cas normal : charger les agences liées à l'utilisateur
-      await loadUserAgencies(userData.userAgenceIds);
-      //console.log('## (dataStore - initializeData) Chargement des agences utilisateur', userData.userAgenceIds);
-      //console.log('## (dataStore - initializeData) Agences chargées', cachedAgencies);
-    }
 
-    // 3. Chargement de tous les robots pour ces agences
-    await loadAllRobotsForAgencies();
-    //console.log('$$(dataStore - loadAllRobotsForAgencies) cachedRobots ', cachedRobots);
 
-    // Marquer l'initialisation comme terminée
-    isInitialized = true;
-  } catch (error) {
-    console.log('Erreur lors de l\'initialisation des données:', error);
-    throw error;
-  }
-}
 
-// ============================================================
-// Fonction interne : fetchUserData
-// ------------------------------------------------------------
-/**
- * fetchUserData
- * -------------------------------------------------------------------
- * Description :
- *  - Récupère les données d'un utilisateur depuis la collection "utilisateurs".
- *  - Utilise une requête pour filtrer par userId.
- * 
- * Entrée :
- *  - userId (string): L'identifiant de l'utilisateur.
- * Sortie :
- *  - Un objet contenant userId, userName, et un tableau userAgenceIds lorsqu'un utilisateur est trouvé,
- *    sinon null.
- */
-async function fetchUserData(userId: string) {
-  try {
-    const userData = await fetchUser(userId);
-    if (!userData) {
-      return null;
-    }
-    return {
-      userId: userData.userId,
-      userName: userData.userName,
-      userEmail: userData.userEmail,
-      userSuperieur: userData.userSuperieur,
-      userValidateur: userData.userValidateur,
-      userAgenceIds: userData.userAgenceIds
-    };
-  } catch (error) {
-    console.log('Erreur lors de la récupération des données utilisateur:', error);
-    throw error;
-  }
-}
-
-// ============================================================
-// Fonction interne : loadUserAgencies
-// ------------------------------------------------------------
-/**
- * loadUserAgencies
- * -------------------------------------------------------------------
- * Description :
- *  - Charge les agences pour un utilisateur à partir d'un tableau de noms d'agences.
- *  - Commence par réinitialiser le cache des agences et ajoute une agence spéciale "TOUT".
- *  - Pour chaque nom d'agence (autre que "-"), effectue une requête Firestore afin 
- *    de récupérer les données correspondantes et les ajoute au cache s'il n'existe pas déjà.
- * 
- * Entrée :
- *  - agencyNames (string[]): Tableau des noms d'agences associées à l'utilisateur.
- * Sortie :
- *  - Promise<void> : Met à jour la variable globale cachedAgencies.
- */
-async function loadUserAgencies(agencyIds: string[]): Promise<void> {
-  try {
-    cachedAgencies = [];
-    // Ajout de l'agence "TOUT" par défaut
-    cachedAgencies.push({
-      idAgence: '99',
-      nomAgence: 'TOUT',
-      libelleAgence: 'TOUT'
-    });
-
-    const fetchedAgencies = await fetchUserAgencies(agencyIds);
-    fetchedAgencies.forEach((agencyData: any) => {
-      // Vérifie que l'agence n'est pas déjà présente dans le cache
-      if (!cachedAgencies.find(a => a.idAgence === agencyData.ID_AGENCE)) {
-        cachedAgencies.push({
-          idAgence: agencyData.ID_AGENCE,
-          nomAgence: agencyData.NOM_AGENCE,
-          libelleAgence: agencyData.LIBELLE_AGENCE
-        });
-      }
-    });
-
-    // Trier les agences par ordre alphabétique (sauf "TOUT" qui reste en premier)
-    cachedAgencies.sort((a, b) => {
-      if (a.nomAgence === 'TOUT') return -1;
-      if (b.nomAgence === 'TOUT') return 1;
-      return (a.nomAgence || '').localeCompare(b.nomAgence || '');
-    });
-  } catch (error) {
-    console.log('Erreur lors du chargement des agences utilisateur:', error);
-    throw error;
-  }
-}
-
-// ============================================================
-// Fonction : loadAllRobots
-// ------------------------------------------------------------
-/**
- * loadAllRobots
- * -------------------------------------------------------------------
- * Description :
- *  - Charge tous les robots depuis la collection "robots_et_baremes" dans Firestore.
- *  - Chaque document est transformé en un objet Program avec les propriétés attendues.
- *  - Ensuite, pour chaque robot, on essaie d'associer des données de reporting depuis cachedReportingData.
- *    Si des données de reporting existent, les valeurs currentMonth et previousMonth sont ajoutées.
- * 
- * Entrée :
- *  - Aucun paramètre.
- * Sortie :
- *  - Promise<void> : Met à jour la variable globale cachedAllRobots.
- */
-export async function loadAllRobots(): Promise<void> {
-  try {
-    const data = await fetchAllRobotsAndBaremes();
-    cachedRobots4Agencies = data.map((robot: any) => ({
-      robot: robot["CLEF"],
-      id_robot: robot.AGENCE + "_" + robot["NOM_PROGRAMME"],
-      agence: robot.AGENCE,
-      agenceLbl: (() => {
-        const agency = cachedAllAgencies.find(a => a.nomAgence === robot.AGENCE);
-        return agency ? agency.libelleAgence : robot.AGENCE;
-      })(),
-      description: robot.DESCRIPTION,
-      date_maj: robot["DATE_MAJ"],
-      type_unite: robot["TYPE_UNITE"],
-      temps_par_unite: (robot["TEMPS_PAR_UNITE"]?.toString() || '0').replace(',', '.'),
-      type_gain: (robot["TYPE_GAIN"]?.toString() || '0').replace(' (mn)', '').toLowerCase(),
-      validateur: robot.VALIDATEUR,
-      valide_oui_non: robot["VALIDE_OUI_NON"],
-      service: robot.SERVICE,
-      probleme: robot.PROBLEME,
-      description_long: robot["DESCRIPTION_LONG"],
-      resultat: robot.RESULTAT
-    }));
-    if (cachedAgencies.length > 0) {
-      const userAgencyNames = cachedAgencies.map(agency => agency.nomAgence);
-      cachedRobots4Agencies = cachedRobots4Agencies.filter(robot => userAgencyNames.includes(robot.agence));
-    }
-
-    // Pour chaque robot, essaye de lier les données de reporting
-    // cachedRobots4Agencies = cachedRobots4Agencies.map(robot => {
-    //   const reportingData = findInMonthlyData(cachedReportingData,
-    //     report => report['AGENCE'] + '_' + report['NOM_PROGRAMME'] === robot.id_robot
-    //   );
-
-    //   return robot;
-    // });
-    console.log('dataStore: loadAllRobots from barème -', cachedRobots4Agencies.length, 'robots chargés');
-    console.log('dataStore: loadAllRobots from barème -', cachedRobots4Agencies);
-
-    // Notifier les composants que les données ont été mises à jour
-    console.log('dataStore: Notification des listeners -', robotDataListeners.length, 'abonnés');
-    notifyRobotDataListeners();
-
-  } catch (error) {
-    console.log('Erreur lors du chargement des robots:', error);
-    throw error;
-  }
-}
-
-// ============================================================
-// Fonction : loadAllRobotsForAgencies
-// ------------------------------------------------------------
-/**
- * loadAllRobotsForAgencies
- * -------------------------------------------------------------------
- * Description :
- *  - Charge les robots pour toutes les agences présentes dans le cache (cachedAgencies).
- *  - Exclut l'agence "TOUT". Pour chaque agence, effectue une requête pour récupérer
- *    les robots correspondants dans la collection "robots_et_baremes".
- *  - Agrège les robots dans cachedRobots.
- * 
- * Entrée : Aucun
- * Sortie : Promise<void> — Met à jour cachedRobots.
- */
-async function loadAllRobotsForAgencies(): Promise<void> {
-  try {
-    const agencyNames = cachedAgencies.map(agency => agency.nomAgence);
-    cachedRobots = [];
-    //console.log('*(dataStore - loadAllRobotsForAgencies) Chargement des ROBOTS des agences :', agencyNames);
-
-    for (const agencyName of agencyNames) {
-      // Ignorer l'agence spéciale "TOUT"
-      if (agencyName !== 'TOUT') {
-        const robots = await fetchAllRobotsAndBaremes(agencyName);
-        cachedRobots.push(...robots.map((robot: any) => ({
-          robot: robot["NOM_PROGRAMME"],
-          id_robot: robot.AGENCE + "_" + robot["NOM_PROGRAMME"],
-          agence: robot.AGENCE,
-          agenceLbl: (() => {
-            const agency = cachedAllAgencies.find(a => a.nomAgence === robot.AGENCE);
-            return agency ? agency.libelleAgence : robot.AGENCE;
-          })(),
-          description: robot.DESCRIPTION,
-          date_maj: robot["DATE_MAJ"],
-          type_unite: robot["TYPE_UNITE"],
-          temps_par_unite: (robot["TEMPS PAR UNITE"]?.toString() || '0').replace(',', '.'),
-          type_gain: (robot["TYPE_GAIN"]?.toString() || '0').replace(' (mn)', '').toLowerCase(),
-          validateur: robot.VALIDATEUR,
-          valide_oui_non: robot["VALIDE_OUI_NON"],
-          service: robot.SERVICE,
-          probleme: robot.PROBLEME,
-          description_long: robot["DESCRIPTION_LONG"],
-          resultat: robot.RESULTAT
-        })));
-      }
-    }
-  } catch (error) {
-    console.log('Erreur lors du chargement des robots:', error);
-    throw error;
-  }
-}
 
 function findInMonthlyData(data: any, predicate: (entry: any) => boolean): any | undefined {
   // This function needs to be implemented or imported if it's from another file
@@ -461,7 +211,7 @@ export function getCachedAgencies(): Agency[] {
  * Sortie :
  *  - Program[] : Liste des robots filtrés, avec "TOUT" inclus.
  */
-export function getRobotsByAgency(_agencyId: string): Program[] {
+export function getRobotsByAgency(_agencyCode: string): Program[] {
   const toutRobot: Program = {
     id_robot: 'TOUT',
     robot: 'TOUT',
@@ -474,12 +224,12 @@ export function getRobotsByAgency(_agencyId: string): Program[] {
   const allRobots = [...cachedRobots4Agencies];
   allRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
 
-  if (_agencyId === '99') {
+  if (_agencyCode === 'TOUT') {
     return [toutRobot, ...allRobots];
   } else {
     // On récupère l'agence correspondante dans le cache pour obtenir son nom
-    const agency = cachedAgencies.find(a => a.idAgence === _agencyId);
-    const agencyName = agency ? agency.nomAgence : _agencyId;
+    const agency = cachedAgencies.find(a => a.codeAgence === _agencyCode);
+    const agencyName = agency ? agency.codeAgence : _agencyCode;
     const filteredRobots = allRobots.filter(r => r.agence === agencyName);
     return [toutRobot, ...filteredRobots];
   }
@@ -529,7 +279,7 @@ export function getRobotsByService(service: string): Program[] {
  * Sortie :
  *  - Program[]: Liste des robots filtrés.
  */
-export function getRobotsByAgencyAndService(agencyId: string, service: string): Program[] {
+export function getRobotsByAgencyAndService(agencyCode: string, service: string): Program[] {
   
   const robot_all: Program = {
     id_robot: 'TOUT',
@@ -540,18 +290,18 @@ export function getRobotsByAgencyAndService(agencyId: string, service: string): 
     type_unite: ''
   };
 
-  console.log(`getRobotsByAgencyAndService - agencyId: ${agencyId}, service: ${service}`);
-  
+  console.log(`getRobotsByAgencyAndService - agencyCode: ${agencyCode}, service: ${service}`);
+
   let filteredRobots: Program[] = [];
 
-  if (agencyId === '99') {
+  if (agencyCode === 'TOUT') {
     // Cas "TOUT": on filtre tous les robots par service
     filteredRobots = getRobotsByService(service);
   } else {
     // Cas d'une agence spécifique: on filtre d'abord par agence, puis par service
-    const agency = cachedAgencies.find(a => a.idAgence === agencyId);
+    const agency = cachedAgencies.find(a => a.codeAgence === agencyCode);
     if (agency) {
-      filteredRobots = cachedRobots4Agencies.filter(robot => robot.agence === agency.nomAgence);
+      filteredRobots = cachedRobots4Agencies.filter(robot => robot.agence === agency.codeAgence);
       if (service && service !== 'TOUT') {
         filteredRobots = filteredRobots.filter(robot => (robot.service ?? '').toLowerCase() === service.toLowerCase());
       }
@@ -744,14 +494,15 @@ export async function initializeReportingData(): Promise<void> {
         year -= 1;
       }
       
-      const anneMois = year * 100 + month;
-      months.push(anneMois);
+      const anneeMois = year * 100 + month;
+      months.push(anneeMois);
     }
     
-    //console.log('Mois à récupérer:', months);
+    console.log('Mois à récupérer:', months);
     
     // Récupérer toutes les données de reporting
-    const allReportingData = await fetchAllReportingData();
+    const allReportingData = await fetchAllReportingData(months);
+    console.log('(dataStore / initializeReportingData) - allReportingData:', allReportingData);
     
     // Filtrer les données par mois
     const currentMonthData = allReportingData.filter((entry: any) => entry.ANNEE_MOIS === months[0]);

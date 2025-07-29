@@ -17,7 +17,7 @@ const ALLOWED_TABLES = [
 export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const table = url.searchParams.get('table');
-    const action = url.searchParams.get('action') || 'list'; // Default action is 'list'
+    const action = url.searchParams.get('action') || 'N/A'; // Default action is 'N/A'
     console.log(`GET Request: Table - ${table}, Action - ${action}`);
 
     if (!table || !ALLOWED_TABLES.includes(table)) {
@@ -48,22 +48,17 @@ export async function GET(request: NextRequest) {
                 break;
 
             case 'Reporting':
-                const months = url.searchParams.get('months')?.split(',').map(m => parseInt(m, 10));
-                const agence = url.searchParams.get('agence');
-                const programme = url.searchParams.get('programme');
-
+                const clefRobot = url.searchParams.get('Clef');
+                const anneeMois = url.searchParams.get('AnneeMois');
+                
                 query = `SELECT * FROM [BD_RPA_TEST].[dbo].[Reporting] WHERE 1=1`;
-                if (months && months.length > 0) {
-                    query += ` AND [ANNEE_MOIS] IN (${months.map((_, i) => `@month${i}`).join(',')})`;
-                    months.forEach((month, i) => params.push({ name: `month${i}`, type: sql.Int, value: month }));
+                if (clefRobot && clefRobot.length > 0) {
+                    query += ` AND [CLEF] = @clefRobot`;
+                    params.push({ name: 'clefRobot', type: sql.NVarChar(150), value: clefRobot });
                 }
-                if (agence) {
-                    query += ` AND [AGENCE] = @agence`;
-                    params.push({ name: 'agence', type: sql.NVarChar(50), value: agence });
-                }
-                if (programme) {
-                    query += ` AND [NOM_PROGRAMME] = @programme`;
-                    params.push({ name: 'programme', type: sql.NVarChar(100), value: programme });
+                if (anneeMois) {
+                    query += ` AND [ANNEE_MOIS] = @anneeMois`;
+                    params.push({ name: 'anneeMois', type: sql.Int, value: anneeMois });
                 }
                 result = await executeQuery(query, params);
                 return NextResponse.json(result.recordset);

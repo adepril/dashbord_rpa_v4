@@ -10,7 +10,7 @@ import { useToast } from "../hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { ClientWrapper } from "./ui/client-wrapper"
-import { fetchStatuts, fetchAllUsers } from '../utils/dataFetcher';
+import { fetchStatuts } from '../utils/dataFetcher';
 
 interface MergedRequestFormProps {
   onClose: () => void;
@@ -105,15 +105,15 @@ export default function MergedRequestForm({
     };
     loadStatuts();
 
-    const loadUsers = async () => {
-      try {
-        const usersData = await fetchAllUsers();
-        setUsers(usersData);
-      } catch (error) {
-        console.log('Erreur lors du chargement des utilisateurs:', error);
-      }
-    };
-    loadUsers();
+    // const loadUsers = async () => {
+    //   try {
+    //     const usersData = await fetchAllUsers();
+    //     setUsers(usersData);
+    //   } catch (error) {
+    //     console.log('Erreur lors du chargement des utilisateurs:', error);
+    //   }
+    // };
+    // loadUsers();
   }, []);
 
   const handleStatusChange = (value: string) => {

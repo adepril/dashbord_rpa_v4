@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (result.recordset.length > 0) {
       // Traitement des USER_AGENCE_IDS (supposé être une chaîne séparée par des virgules)
       const user = result.recordset[0];
-      console.log('User object from DB:', user); // Ajout du log pour le débogage
+      //console.log('User object from DB:', user); // Ajout du log pour le débogage
       // Retourner les données utilisateur
       const agenceIds: string[] = [];
       if (user.AGENCE_BBLBRI.toLowerCase() === "oui") agenceIds.push('BBLBRI');
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         
       };
       
-      return NextResponse.json({ message: 'Authentication successful', user: userData });
+      return NextResponse.json({ message: 'Authentication successful', userData: userData });
     } else {
       return NextResponse.json({ message: 'Invalid username or password' }, { status: 401 });
     }

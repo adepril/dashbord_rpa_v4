@@ -27,43 +27,20 @@ interface UserData {
 }
 
 interface Agency {
-  idAgence: string;
-  nomAgence: string;
+  codeAgence: string;
   libelleAgence?: string;
 }
 
 /**
  * fetchAgenciesByIds - Récupère les agences correspondant aux IDs fournis via l'API.
- * @param agencyIds string[] - Liste des IDs d'agences à récupérer
+ * @param agencyCode string[] - Liste des IDs d'agences à récupérer
  * @returns Promise<Agency[]> - Tableau des agences trouvées
  */
-export async function fetchAgenciesByIds(agencyIds: string[]): Promise<Agency[]> {
-  console.log('Retrieve agencies for IDs:', agencyIds);
-  try {
-    // Récupérer toutes les agences puis filtrer
-    const response = await fetch('/api/sql/data?table=Agences');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const allAgencies = await response.json();
-    
-    // Si aucun ID n'est fourni, retourner toutes les agences
-    if (!agencyIds || agencyIds.length === 0) {
-      return allAgencies;
-    }
-    
-    // Filtrer les agences qui correspondent aux IDs fournis
-    const filteredAgencies = allAgencies.filter((agency: any) => 
-      agencyIds.includes(agency.NOM_AGENCE)
-    );
-    
-    return filteredAgencies;
-  } catch (error) {
-    console.log('Error fetching agencies:', error);
-    return [];
-  }
-}
+// export async function fetchAgenciesByIds(agencyCode: string[]): Promise<Agency[]> {
+// //TODO: récupérer le 'libelleAgence' à partir du 'codeAgence' de 'cachedAllAgencies'
+
+// }
+
 
 interface Evolution {
   Robot: string;
@@ -167,7 +144,7 @@ export async function fetchRandomQuote(): Promise<Quote | null> {
  */
 export async function fetchStatuts() {
   try {
-    const response = await fetch('/api/sql/data?table=statuts');
+    const response = await fetch('/api/sql?table=Statuts');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -190,45 +167,6 @@ export const formatNumber = (num: number) => {
   }
 };
 
-/**
- * Fetches all users via the API.
- * @returns A Promise that resolves to an array of user objects with userId and userName properties.
- */
-export async function fetchAllUsers(): Promise<{ userId: string; userName: string }[]> {
-  try {
-    const response = await fetch('/api/sql/data?table=users');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.log('Error fetching users:', error);
-    return [];
-  }
-}
-
-/**
- * Fetches user data via the API based on the provided user ID.
- * @param userId The ID of the user to fetch.
- * @returns A Promise that resolves to a UserData object or null if the user is not found.
- */
-export async function fetchUser(userId: string): Promise<UserData | null> {
-  try {
-    const response = await fetch(`/api/sql/data?table=users&id=${userId}`);
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.log('Error fetching user:', error);
-    return null;
-  }
-}
 
 /**
  * Fetches reporting data for a specific agency via the API.
@@ -237,7 +175,7 @@ export async function fetchUser(userId: string): Promise<UserData | null> {
  */
 export async function fetchDataReportingByAgency(agence: string) {
   try {
-    const response = await fetch(`/api/sql/data?table=reporting&agency=${agence}`);
+    const response = await fetch(`/api/sql?table=Reporting&agency=${agence}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -250,18 +188,23 @@ export async function fetchDataReportingByAgency(agence: string) {
 }
 
 /**
- * Fetches all reporting data via the API.
+ * Fetches reporting data for the month in parameter via the API.
  * @returns A Promise that resolves to an array of reporting data objects.
  */
-export async function fetchAllReportingData() {
+export async function fetchAllReportingData(months: number[]): Promise<any[]> {
   try {
-    const response = await fetch('/api/sql/data?table=reporting');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    console.log('Retrieve all reporting data (dataFetcher / fetchAllReportingData)', data);
-    return data;
+    const allDataPromises = months.map(async (month) => {
+      const response = await fetch(`/api/sql?table=Reporting&AnneeMois=${month}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    });
+
+    const allData = await Promise.all(allDataPromises);
+    const combinedData = allData.flat(); // Combine all arrays into a single one
+    console.log('Retrieve all reporting data (dataFetcher / fetchAllReportingData)', combinedData);
+    return combinedData;
   } catch (error) {
     console.log('Error fetching all reporting data:', error);
     return [];
@@ -274,7 +217,7 @@ export async function fetchAllReportingData() {
  */
 export async function fetchAllServices(): Promise<{ id: string; name: string }[]> {
   try {
-    const response = await fetch('/api/sql/data?table=services');
+    const response = await fetch('/api/sql?table=services');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -287,57 +230,3 @@ export async function fetchAllServices(): Promise<{ id: string; name: string }[]
   }
 }
 
-/**
- * Fetches all robots and baremes via the API.
- * @param agence (optional) The agency to filter robots by.
- * @returns A Promise that resolves to an array of Program objects.
- */
-export async function fetchUserAgencies(agencyIds: string[]): Promise<Agency[]> {
-    console.log('Retrieve agencies (dataFetcher / fetchUserAgencies)', agencyIds);
-    try {
-        // Si aucun ID n'est fourni, retourner toutes les agences
-        if (!agencyIds || agencyIds.length === 0) {
-            const response = await fetch('/api/sql/data?table=Agences');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        }
-
-        // Pour éviter les URLs trop longues, on utilise une approche différente
-        // On récupère toutes les agences puis on filtre côté client
-        const response = await fetch('/api/sql/data?table=Agences');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const allAgencies = await response.json();
-        
-        // Filtrer les agences qui correspondent aux IDs fournis
-        const filteredAgencies = allAgencies.filter((agency: any) => 
-            agencyIds.includes(agency.NOM_AGENCE)
-        );
-        
-        return filteredAgencies;
-    } catch (error) {
-        console.log('Error fetching agencies:', error);
-        return [];
-    }
-}
-
-export async function fetchAllRobotsAndBaremes(agence?: string): Promise<Program[]> {
-  try {
-    const url = agence ? `/api/sql/data?table=robots&agence=${agence}` : '/api/sql/data?table=robots';
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    if(data.length > 0)
-       console.log('Retrieve robots and baremes (dataFetcher / fetchAllRobotsAndBaremes):', data);
-    return data;
-  } catch (error) {
-    console.log('Error fetching robots and baremes:', error);
-    return [];
-  }
-}

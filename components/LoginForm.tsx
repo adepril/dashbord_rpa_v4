@@ -62,13 +62,11 @@ export default function LoginForm() {
             }
 
             const userData = await response.json();
-            console.log('(loginForm) utilisateur :', userData);
-            
-            // Mettre à jour le statut de première connexion
-            updateFirstLoginStatus();
+            console.log('(LoginForm) User data from request response:', userData);
+            // updateFirstLoginStatus();
 
             // Stocker les informations de l'utilisateur dans localStorage
-            localStorage.setItem('userData', JSON.stringify(userData));
+            localStorage.setItem('userData', JSON.stringify(userData.userData));
 
             router.push('/dashboard');
         } catch (err) {

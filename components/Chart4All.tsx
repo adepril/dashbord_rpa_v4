@@ -58,10 +58,7 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
-
-
-
-  // États locaux du composant :
+// États locaux du composant :
 // robots : tableau de robots filtrés pour l'affichage dans la section "Le saviez-vous ?"
 // currentIndex : index du robot actuellement affiché dans le diaporama
 // isPaused : booléen indiquant si le défilement automatique des robots est en pause
@@ -73,7 +70,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 
   // Effet pour gérer le défilement automatique du carrousel
   useEffect(() => {
-    console.log('Chart4All: Initialisation du carrousel');
+    //console.log('Chart4All: Initialisation du carrousel');
     
     const handleRobotDataUpdate = () => {
       //console.log('Chart4All: Mise à jour des données robots', cachedRobots4Agencies.length);
@@ -91,7 +88,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   }, []);
 
   useEffect(() => {
-    console.log('Chart4All: Vérification du défilement', { robotsLength: robots.length, isPaused });
+    //console.log('Chart4All: Vérification du défilement', { robotsLength: robots.length, isPaused });
     if (robots.length > 0 && !isPaused) {
       //console.log('Chart4All: Démarrage du défilement automatique');
       const interval = setInterval(() => {

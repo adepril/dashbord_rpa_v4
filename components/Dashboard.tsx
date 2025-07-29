@@ -21,7 +21,6 @@ import {
 } from '../utils/dataFetcher'
 
 import {
-  initializeData,
   initializeReportingData,
   getCachedAgencies,
   getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
@@ -35,7 +34,7 @@ import {
   setUpdateRobotsCallback,
   getReportingData,
   ReportingEntry,
-  loadAllRobots,
+
   loadAllAgencies,
   cachedReportingData,
   getTotalCurrentMonth,
@@ -100,11 +99,15 @@ export default function Dashboard() {
   const [showAllRobots, setShowAllRobots] = useState(isFirstLoginSession());
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('N'); // 'N', 'N-1', 'N-2', 'N-3'
-  const userData = JSON.parse(localStorage.getItem('userData') || 'null');
-  const username = userData?.userId || '';
+  const [userData, setUserData] = useState<any>(null);
+  
+  // Définir userId et userName en fonction de userData à chaque rendu
+  const userId = userData?.userId || '';
+  const userName = userData?.userName || '';
+  const userAgenceIds = userData?.userAgenceIds || []; 
   const [selectedAgency, setSelectedAgency] = useState<Agency | null>({
-    idAgence: '99',
-    nomAgence: 'TOUT'
+    codeAgence: 'TOUT',
+    libelleAgence: 'TOUT'
   });
   const [selectedService, setSelectedService] = useState<string>('TOUT');
   const [availableServices, setAvailableServices] = useState<Set<string>>(new Set(['TOUT']));
@@ -138,10 +141,14 @@ export default function Dashboard() {
   // Redirection si l'utilisateur n'est pas connecté
   // ------------------------------------------------------------------
   useEffect(() => {
-    if (!userData) {
+    const storedUserData = localStorage.getItem('userData');
+    if (storedUserData) {
+      setUserData(JSON.parse(storedUserData));
+    } else {
+      localStorage.removeItem('userData'); // Supprimer les données utilisateur du localStorage
       router.replace('/');
     }
-  }, [userData, router]);
+  }, [router]);
 
   // ------------------------------------------------------------------
   // Initialisation des données (utilisateur, agences, robots, reporting)
@@ -150,7 +157,9 @@ export default function Dashboard() {
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    if (!initialized.current && username) {
+    console.log('(Dashboard) -userName:', userName, ' -userId:', userId, ' -userAgenceIds:', userAgenceIds);  
+    console.log('isDataInitialized:', isDataInitialized());
+    if (!initialized.current && userId) {
       initialized.current = true;
 
       const loadInitialData = async () => {
@@ -159,23 +168,23 @@ export default function Dashboard() {
 
           // Étape 1: Charger toutes les données nécessaires dans le cache de manière séquentielle
           await loadAllAgencies();
-          await initializeData(username);
-          await loadAllRobots();
+          console.log('Toutes les agences chargées en cache:', getCachedAllAgencies());
+
           await initializeReportingData();
 
           // Étape 2: Une fois les données mises en cache, les récupérer et définir l'état du composant
-          const userAgencies = username === '0' ? getCachedAllAgencies() : getCachedAgencies();
+          const userAgencies = userId === '0' ? getCachedAllAgencies() : getCachedAgencies();
           setAgencies(userAgencies);
 
           // Définir l'agence par défaut
-          const defaultAgency = userAgencies.find(a => a.idAgence === '99') || userAgencies[0] || { idAgence: '99', nomAgence: 'TOUT' };
+          const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
 
           // Définir le service par défaut
           setSelectedService('TOUT');
 
           // Charger les programmes pour l'agence et le service par défaut
-          const allRobots = getRobotsByAgencyAndService(defaultAgency?.idAgence || '99', 'TOUT');
+          const allRobots = getRobotsByAgencyAndService(defaultAgency?.codeAgence || 'TOUT', 'TOUT');
           setPrograms(allRobots);
           updateService(allRobots); // Mettre à jour les services disponibles
 
@@ -207,7 +216,7 @@ export default function Dashboard() {
     return () => {
       resetCache();
     };
-  }, [username]);
+  }, [userId]);
 
   // ------------------------------------------------------------------
   // Mise à jour des programmes quand l'agence ou le service change
@@ -221,9 +230,9 @@ export default function Dashboard() {
 
     const loadProgramsForSelection = () => {
       if (selectedAgency) {
-        const agencyId = selectedAgency.idAgence;
-        const allRobots = getRobotsByAgencyAndService(agencyId, selectedService);
-        
+        const agencyCode = selectedAgency.codeAgence;
+        const allRobots = getRobotsByAgencyAndService(agencyCode, selectedService);
+
         setPrograms(allRobots);
         updateService(allRobots);
 
@@ -304,7 +313,7 @@ export default function Dashboard() {
                 'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB UNITES DEPUIS DEBUT DU MOIS']),
               }));
 
-            if (robot.agence === selectedAgency?.nomAgence || selectedAgency?.nomAgence === "TOUT") {
+            if (robot.agence === selectedAgency?.codeAgence || selectedAgency?.codeAgence === "TOUT") {
               const currentProgram = programs.find(p => p.robot === robot.robot);
               const robotType = currentProgram?.type_gain;
 
@@ -442,12 +451,12 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   // Gestion du changement d'agence
   // ------------------------------------------------------------------
-  const handleAgencyChange = (agencyId: string) => {
-    const agencySelected = agencies.find(a => a.idAgence === agencyId);
+  const handleAgencyChange = (agencyCode: string) => {
+    const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
     console.log('--- AGENCY CHANGE BEGIN ---');
     console.log('Agence choisie:', agencySelected);
     setSelectedAgency(agencySelected || null);
-    sessionStorage.setItem('selectedAgencyId', agencyId);
+    sessionStorage.setItem('selectedAgencyCode', agencyCode);
 
     // Réinitialiser le service à "TOUT"
     setSelectedService('');
@@ -463,7 +472,7 @@ export default function Dashboard() {
 
     // Charger les nouveaux robots depuis le cache
     if (agencySelected && isDataInitialized()) {
-      const allRobots = agencySelected.idAgence === '99' ? getRobotsByAgency('99') : getRobotsByAgency(agencySelected.idAgence);
+      const allRobots = agencySelected.codeAgence === 'TOUT' ? getRobotsByAgency('TOUT') : getRobotsByAgency(agencySelected.codeAgence);
       console.log('handleAgencyChange - Robots chargés:', allRobots);
       setPrograms(allRobots);
       updateService(allRobots);
@@ -530,7 +539,7 @@ export default function Dashboard() {
 
 
 
-    if (!username) {
+    if (!userId) {
       return <div className="text-red-500">Pas d'utilisateur connecté</div>;
     }
 
@@ -574,7 +583,7 @@ export default function Dashboard() {
                   <span>Agence:</span>
                   <AgencySelector
                     agencies={agencies}
-                    selectedAgencyId={selectedAgency?.idAgence || ''}
+                    selectedAgencyId={selectedAgency?.codeAgence || ''}
                     onAgencyChange={handleAgencyChange}
                   />
                 </div>
@@ -642,7 +651,7 @@ export default function Dashboard() {
                       <Chart4All
                         selectedMonth={selectedMonth}
                         setSelectedMonth={setSelectedMonth}
-                        key={`all-${selectedAgency?.idAgence}-${selectedRobot?.type_gain}`}
+                        key={`all-${selectedAgency?.codeAgence}-${selectedRobot?.type_gain}`}
                         robotType={selectedRobot?.type_gain}
                         data1={robotData1}
                         totalCurrentMonth={totalCurrentMonth}
@@ -659,7 +668,7 @@ export default function Dashboard() {
                       <Chart
                         robotType={selectedRobot?.type_gain}
                         data={robotData}
-                        selectedAgency={selectedAgency?.idAgence || ''}
+                        selectedAgency={selectedAgency?.codeAgence || ''}
                         selectedMonth={selectedMonth}
                         setSelectedMonth={setSelectedMonth}
                         totalCurrentMonth={totalCurrentMonth}
