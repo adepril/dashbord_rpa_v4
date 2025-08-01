@@ -45,6 +45,7 @@ export interface Agency {
  * métadata sur le robot.
  */
 export interface Program {
+  clef: string;
   robot: string;
   id_robot: string;
   agence: string;
@@ -60,6 +61,8 @@ export interface Program {
   probleme?: string;
   description_long?: string;
   resultat?: string;
+  // Les champs suivants n'existent pas dans Barem_Reporting, mais sont utilisés ailleurs.
+  // Je les garde pour éviter des erreurs de compilation, mais ils pourraient être `undefined`.
   currentMonth?: string;
   previousMonth?: string;
   name?: string;
@@ -101,14 +104,102 @@ export async function loadAllAgencies(): Promise<void> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
+    const tout: Agency = { codeAgence: 'TOUT', libelleAgence: 'Toutes les agences' };
     cachedAllAgencies = data.map((agency: any) => ({
       codeAgence: agency.CODE_AGENCE,
       libelleAgence: agency.LIBELLE_AGENCE
     }));
     // Trier les agences par ordre alphabétique
     cachedAllAgencies.sort((a, b) => (a.codeAgence || '').localeCompare(b.codeAgence || ''));
+    cachedAllAgencies = [tout, ...cachedAllAgencies];
   } catch (error) {
     console.log('Erreur lors du chargement de toutes les agences:', error);
+    throw error;
+  }
+}
+
+/**
+ * loadAllServices
+ * -------------------------------------------------------------------
+ * Description :
+ *  - Charge tous les services depuis la table "Services" dans SQL Server.
+ *  - Met à jour la variable globale cachedServices.
+ *
+ * Entrée : Aucun
+ * Sortie : Promise<void>
+ */
+export async function loadAllServices(): Promise<void> {
+  try {
+    const response = await fetch('/api/sql?table=Services');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    cachedServices = data.map((service: any) => service.NOM_SERVICE);
+    // Ajouter "TOUT" au début de la liste
+    //cachedServices.unshift("TOUT");
+    //console.log('Services chargés en cache:', cachedServices);
+  } catch (error) {
+    console.log('Erreur lors du chargement des services:', error);
+    throw error;
+  }
+}
+
+/**
+ * loadAllRobots
+ * -------------------------------------------------------------------
+ * Description :
+ *  - Charge tous les robots depuis la table "Barem_Reporting" dans SQL Server.
+ *  - Met à jour la variable globale cachedAllRobots.
+ *
+ * Entrée : Aucun
+ * Sortie : Promise<void>
+ */
+export async function loadAllRobots(): Promise<void> {
+  try {
+    const response = await fetch('/api/sql?table=Barem_Reporting');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    cachedRobots = data.map((robot: any) => ({
+      clef: robot.CLEF,
+      robot: robot.NOM_PROGRAMME,
+      agence: robot.AGENCE,
+      service: robot.SERVICE,
+      description: robot.DESCRIPTION,
+      probleme: robot.PROBLEME,
+      description_long: robot.DESCRIPTION_LONG,
+      resultat: robot.RESULTAT,
+      date_maj: robot.DATE_MAJ,
+      type_unite: robot.TYPE_UNITE,
+      temps_par_unite: robot.TEMPS_PAR_UNITE,
+      type_gain: robot.TYPE_GAIN,
+      validateur: robot.VALIDATEUR,
+      valide_oui_non: robot.VALIDE_OUI_NON,
+      id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
+    }));
+    // Ajouter "TOUT" au début de la liste
+    cachedRobots.unshift({
+      clef: "TOUT",
+      robot: "TOUT",
+      id_robot: "TOUT",
+      agence: "TOUT",
+      service: "TOUT",
+      description: "Tous les robots",
+      probleme: "",
+      description_long: "",
+      resultat: "",
+      date_maj: "",
+      type_unite: "unité",
+      temps_par_unite: "0",
+      type_gain: "unité",
+      validateur: "",
+      valide_oui_non: ""
+    });
+    console.log('Robots chargés en cache:', cachedRobots);
+  } catch (error) {
+    console.log('Erreur lors du chargement des robots:', error);
     throw error;
   }
 }

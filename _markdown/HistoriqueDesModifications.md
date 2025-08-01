@@ -263,3 +263,68 @@ En déplaçant la logique de `fetch` directement dans `initializeReportingData` 
 **Impact :**
 - **Précision des données de reporting :** Cette modification garantit que les rapports mensuels sont basés sur des périodes complètes, ce qui est crucial pour l'analyse des tendances et la comparaison des performances.
 - **Cohérence des calculs :** Les calculs `currentYear` et `currentMonth` utilisent désormais une `currentDate` ajustée, assurant la cohérence pour la récupération des données des quatre derniers mois.
+
+## 2025-08-01 - Implémentation des listes déroulantes Agence, Service et Robot
+
+**Objectif :** Rendre fonctionnelles les listes déroulantes 'Agence', 'Service' et 'Robot' en les alimentant avec les données provenant de SQL Server.
+
+**Analyse :**
+- Les listes déroulantes 'Agence', 'Service' et 'Robot' étaient vides ou mal alimentées.
+- Les données devaient être récupérées depuis des tables SQL Server spécifiques (`AgencesV2`, `Services`, `Barem_Reporting`).
+- L'architecture existante utilisait encore des références à Firestore, qui a été migré vers SQL Server.
+- La table `Barem_Reporting` n'était pas autorisée via l'API.
+
+**Modifications apportées :**
+
+### 1. API SQL (`app/api/sql/route.ts`)
+- Ajout de `Barem_Reporting` à la liste `ALLOWED_TABLES` pour autoriser les requêtes sur cette table.
+- Implémentation d'un nouveau cas dans la fonction `GET` pour la table `Barem_Reporting`, permettant de récupérer toutes ses données.
+
+### 2. Gestionnaire de données (`utils/dataStore.ts`)
+- **Mise à jour de l'interface `Program` :** L'interface `Program` a été mise à jour pour correspondre précisément aux champs de la table `Barem_Reporting` (`clef`, `robot`, `agence`, `service`, `description`, `probleme`, `description_long`, `resultat`, `date_maj`, `type_unite`, `temps_par_unite`, `type_gain`, `validateur`, `valide_oui_non`). Un champ calculé `id_robot` a été ajouté pour faciliter l'identification.
+- **Création de `loadAllServices()` :** Cette fonction charge les services depuis la table SQL `Services` et les stocke dans `cachedServices`. Elle ajoute également une option "TOUT" au début de la liste.
+- **Création de `loadAllRobots()` :** Cette fonction charge les robots depuis la table SQL `Barem_Reporting` et les stocke dans `cachedRobots`. Elle ajoute également une option "TOUT" au début de la liste.
+- La fonction `loadAllAgencies` a été vérifiée et confirmée comme étant fonctionnelle et ne faisant plus référence à Firestore.
+
+### 3. Tableau de bord (`components/Dashboard.tsx`)
+- **Importations :** Les fonctions `loadAllServices`, `loadAllRobots` et les variables `cachedServices`, `cachedRobots` ont été importées depuis `utils/dataStore.ts`.
+- **Appels dans `loadInitialData` :** Les nouvelles fonctions `loadAllServices()` et `loadAllRobots()` sont désormais appelées dans `loadInitialData` pour initialiser les caches correspondants.
+- **Initialisation des états :**
+    - L'état `programs` est maintenant initialisé avec `cachedRobots`.
+    - L'état `availableServices` est maintenant initialisé avec `new Set(cachedServices)`.
+
+**Impact :**
+- Les listes déroulantes 'Agence', 'Service' et 'Robot' sont désormais correctement alimentées et fonctionnelles, utilisant les données de SQL Server.
+- L'application est entièrement migrée de Firestore vers SQL Server pour ces fonctionnalités.
+- La structure de données pour les robots est alignée avec la base de données, améliorant la cohérence et la maintenabilité du code.
+
+## 2025-08-01 - Correction de l'alimentation des listes déroulantes
+
+**Objectif :** Résoudre le problème où les listes déroulantes 'Agence', 'Service' et 'Robot' n'étaient pas alimentées malgré le chargement correct des données dans les caches.
+
+**Analyse :**
+- Les objets `cachedServices`, `cachedRobots` et `cachedAllAgencies` étaient correctement initialisés, mais les listes déroulantes n'affichaient pas les données.
+- Les états `availableServices` et `programs` dans le composant `Dashboard.tsx` n'étaient pas mis à jour après le chargement des données dans la fonction `loadInitialData`.
+- La fonction `handleAgencyChange` était vide et ne mettait pas à jour l'agence sélectionnée ni les programmes.
+
+**Modifications apportées :**
+
+### 1. Mise à jour des états dans `loadInitialData` (`components/Dashboard.tsx`)
+- Ajout de `setPrograms(cachedRobots);` après `await loadAllRobots();` pour mettre à jour l'état `programs` avec les robots chargés.
+- Ajout de `setAvailableServices(new Set(cachedServices));` après `await loadAllServices();` pour mettre à jour l'état `availableServices` avec les services chargés.
+
+### 2. Correction de la fonction `handleAgencyChange` (`components/Dashboard.tsx`)
+- Implémentation complète de la fonction `handleAgencyChange` qui était précédemment vide.
+- Ajout de la mise à jour de l'agence sélectionnée avec `setSelectedAgency(agencySelected);`.
+- Ajout de la mise à jour des programmes avec `setPrograms(cachedRobots);` pour refléter les robots de l'agence sélectionnée.
+- Ajout de la réinitialisation du robot sélectionné avec `setSelectedRobot(null);` et `setSelectedRobotData(null);`.
+
+### 3. Correction de la récupération des agences (`components/Dashboard.tsx`)
+- Modification de la logique de récupération des agences dans la fonction `loadInitialData` pour toujours utiliser `getCachedAllAgencies()` au lieu de conditionner l'utilisation des agences en fonction de la valeur de `userId`.
+- La ligne `const userAgencies = userId === '0' ? getCachedAllAgencies() : getCachedAgencies();` a été remplacée par `const userAgencies = getCachedAllAgencies();`.
+- Cette modification garantit que toutes les agences sont disponibles dans la liste déroulante, quelle que soit la valeur de `userId`.
+
+**Impact :**
+- Les listes déroulantes 'Agence', 'Service' et 'Robot' sont maintenant correctement alimentées avec les données de SQL Server.
+- Le changement d'agence met à jour correctement la liste des robots disponibles.
+- L'interface utilisateur est maintenant pleinement fonctionnelle et réactive aux sélections de l'utilisateur.

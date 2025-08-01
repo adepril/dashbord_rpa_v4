@@ -24,6 +24,10 @@ import {
   initializeReportingData,
   getCachedAgencies,
   getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
+  loadAllServices, // Importation ajoutée
+  loadAllRobots, // Importation ajoutée
+  cachedServices, // Importation ajoutée
+  cachedRobots, // Importation ajoutée
 
   Agency,
   Program,
@@ -100,8 +104,8 @@ export default function Dashboard() {
     libelleAgence: 'TOUT'
   });
   const [selectedService, setSelectedService] = useState<string>('TOUT');
-  const [availableServices, setAvailableServices] = useState<Set<string>>(new Set(['TOUT']));
-  const [programs, setPrograms] = useState<Program[]>([]);
+  const [availableServices, setAvailableServices] = useState<Set<string>>(new Set(cachedServices));
+  const [programs, setPrograms] = useState<Program[]>(cachedRobots);
   const [selectedRobot, setSelectedRobot] = useState<Program | null>(null);
   const [selectedRobotData, setSelectedRobotData] = useState<Program | null>(null);
   const [historiqueData, setHistoriqueData] = useState<any[]>([]);
@@ -158,29 +162,37 @@ export default function Dashboard() {
 
           // Étape 1: Charger toutes les données nécessaires dans le cache de manière séquentielle
           await loadAllAgencies();
-          console.log('Toutes les agences chargées en cache:', getCachedAllAgencies());
 
-          // Charger les données de reporting pour 4 mois
+          console.log('(Dashboard) Toutes les agences chargées en cache:', getCachedAllAgencies());
+          // Une fois les données mises en cache, les récupérer et définir l'état du composant
+          const userAgencies = getCachedAllAgencies();
+          setAgencies(userAgencies);
+          console.log('(Dashboard) initializeReportingData - Agences récupérées:', userAgencies);
+
+          // Définir l'agence par défaut
+          const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
+          setSelectedAgency(defaultAgency);
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
+
+          // Étape 2: Charger tous les robots
+          await loadAllRobots();
+          console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobots);
+          setPrograms(cachedRobots);
+
+          //Etape 3: Charger les services de la table 'Services'
+          await loadAllServices();
+          console.log('Tous les services chargés en cache:', cachedServices);
+          setAvailableServices(new Set(cachedServices));
+          // Définir le service par défaut
+          setSelectedService('TOUT'); //?
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Service par défaut: TOUT');
+
+          // Étape 4:Charger les données de reporting pour 4 mois
           await initializeReportingData();
           console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
           console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
           console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
           console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
-
-          // Étape 2: Une fois les données mises en cache, les récupérer et définir l'état du composant
-          const userAgencies = userId === '0' ? getCachedAllAgencies() : getCachedAgencies();
-          setAgencies(userAgencies);
-          //console.log('(Dashboard / initializeReportingData) - Agences récupérées:', userAgencies);
-
-          // Définir l'agence par défaut
-          const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
-          setSelectedAgency(defaultAgency);
-          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency);
-
-          // Définir le service par défaut
-          setSelectedService('TOUT');
-          console.log('(Dashboard / initializeReportingData) loadInitialData - Service par défaut: TOUT');
-
 
         } catch (error) {
           console.error('Erreur lors du chargement des données initiales:', error);
@@ -402,7 +414,18 @@ export default function Dashboard() {
   const handleAgencyChange = (agencyCode: string) => {
     const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
     console.log('--- AGENCY CHANGE BEGIN ---');
-
+    
+    if (agencySelected) {
+      setSelectedAgency(agencySelected);
+      
+      // Mettre à jour les programmes en fonction de l'agence sélectionnée
+      // Les robots sont déjà mis à jour dans le cache par AgencySelector
+      setPrograms(cachedRobots);
+      
+      // Réinitialiser le robot sélectionné
+      setSelectedRobot(null);
+      setSelectedRobotData(null);
+    }
 
     console.log('--- AGENCY CHANGE END ---');
   };

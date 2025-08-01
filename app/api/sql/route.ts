@@ -11,7 +11,8 @@ const ALLOWED_TABLES = [
     'Statuts',
     'UtilisateursV2',
     'AgencesV2',
-    'Evolutions'
+    'Evolutions',
+    'Barem_Reporting'
 ];
 
 export async function GET(request: NextRequest) {
@@ -94,6 +95,11 @@ export async function GET(request: NextRequest) {
                     params.push({ name: 'agenceName', type: sql.NVarChar(100), value: agenceName });
                 }
                 result = await executeQuery(query, params);
+                return NextResponse.json(result.recordset);
+
+            case 'Barem_Reporting':
+                query = `SELECT * FROM [BD_RPA_TEST].[dbo].[Barem_Reporting]`;
+                result = await executeQuery(query);
                 return NextResponse.json(result.recordset);
 
             default:
