@@ -201,138 +201,22 @@ export function getCachedAgencies(): Agency[] {
  * getRobotsByAgency
  * -------------------------------------------------------------------
  * Description :
- *  - Filtre les robots en fonction de l'ID d'une agence.
- *  - Si l'agence est "TOUT" (id '99'), retourne tous les robots.
- *  - Sinon, filtre les robots dont l'agence correspond au nom de l'agence trouvée dans le cache.
- *  - Ajoute ensuite un robot "TOUT" en position 0 pour permettre une sélection globale.
- * 
+ *  - Retourne les robots associés à une agence spécifique.
+ *  - Si l'agence est "TOUT", retourne tous les robots en cache.
+ *
  * Entrée :
- *  - agencyId (string) : Identifiant de l'agence sélectionnée.
+ *  - agencyId: string - L'identifiant de l'agence.
  * Sortie :
- *  - Program[] : Liste des robots filtrés, avec "TOUT" inclus.
+ *  - Program[] - Liste des robots filtrés.
  */
-export function getRobotsByAgency(_agencyCode: string): Program[] {
-  const toutRobot: Program = {
-    id_robot: 'TOUT',
-    robot: 'TOUT',
-    agence: 'TOUT',
-    type_gain: '0',
-    temps_par_unite: '0',
-    type_unite: ''
-  };
-
-  const allRobots = [...cachedRobots4Agencies];
-  allRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
-
-  if (_agencyCode === 'TOUT') {
-    return [toutRobot, ...allRobots];
-  } else {
-    // On récupère l'agence correspondante dans le cache pour obtenir son nom
-    const agency = cachedAgencies.find(a => a.codeAgence === _agencyCode);
-    const agencyName = agency ? agency.codeAgence : _agencyCode;
-    const filteredRobots = allRobots.filter(r => r.agence === agencyName);
-    return [toutRobot, ...filteredRobots];
+export function getRobotsByAgency(agencyId: string): Program[] {
+  if (agencyId === 'TOUT') {
+    return cachedRobots4Agencies;
   }
+  return cachedRobots4Agencies.filter(robot => robot.agence === agencyId);
 }
 
-/**
- * getRobotsByService
- * -------------------------------------------------------------------
- * Description :
- *  - Retourne tous les robots filtrés par service.
- *  - Si le service est "TOUT" ou non spécifié, retourne l'ensemble des robots.
- * 
- * Entrée :
- *  - service (string)
- * Sortie :
- *  - Program[] : Liste des robots filtrés par service.
- */
-export function getRobotsByService(service: string): Program[] {
-  const sourceRobots = [...cachedRobots4Agencies];
 
-  if (!service || service === 'TOUT') {
-    // Trier par ordre alphabétique
-    sourceRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
-    return sourceRobots;
-  }
-  
-  // Filtrer puis trier
-  const filteredRobots = sourceRobots.filter(robot =>
-    (robot.service ?? '').toLowerCase() === service.toLowerCase()
-  );
-  
-  // Trier par ordre alphabétique
-  filteredRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
-  
-  return filteredRobots;
-}
-
-/**
- * getRobotsByAgencyAndService
- * -------------------------------------------------------------------
- * Description :
- *  - Retourne les robots filtrés par agence et service.
- * 
- * Entrée :
- *  - agencyId (string): Identifiant de l'agence.
- *  - service (string): Nom du service.
- * Sortie :
- *  - Program[]: Liste des robots filtrés.
- */
-export function getRobotsByAgencyAndService(agencyCode: string, service: string): Program[] {
-  
-  const robot_all: Program = {
-    id_robot: 'TOUT',
-    robot: 'TOUT',
-    agence: 'TOUT',
-    type_gain: '0',
-    temps_par_unite: '0',
-    type_unite: ''
-  };
-
-  console.log(`getRobotsByAgencyAndService - agencyCode: ${agencyCode}, service: ${service}`);
-
-  let filteredRobots: Program[] = [];
-
-  if (agencyCode === 'TOUT') {
-    // Cas "TOUT": on filtre tous les robots par service
-    filteredRobots = getRobotsByService(service);
-  } else {
-    // Cas d'une agence spécifique: on filtre d'abord par agence, puis par service
-    const agency = cachedAgencies.find(a => a.codeAgence === agencyCode);
-    if (agency) {
-      filteredRobots = cachedRobots4Agencies.filter(robot => robot.agence === agency.codeAgence);
-      if (service && service !== 'TOUT') {
-        filteredRobots = filteredRobots.filter(robot => (robot.service ?? '').toLowerCase() === service.toLowerCase());
-      }
-    }
-  }
-
-  // Trier les robots par ordre alphabétique
-  filteredRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
-  
-  // Ajouter le robot "TOUT" en premier
-  return [robot_all, ...filteredRobots];
-}
-
-/**
- * updateService
- * ------------------------------------------------------------
- * Met à jour le service des robots dans le cache.
- * Entrée:
- *  - robots: Tableau de Program à envoyer.
- * Sortie:
- *  - string[]: Tableau des services mis à jour.
- */
-export function updateService(robots: Program[]): string[] {
-  const updatedServices: string[] = [];
-  robots.forEach(robot => {
-    if (robot.service) {
-      updatedServices.push(robot.service);
-    }
-  });
-  return updatedServices;
-}
 
 
 // ============================================================
@@ -431,55 +315,18 @@ export function getReportingData(month: string): ReportingEntry[] {
 }
 
 
-export function getTotalCurrentMonth(): number {
-  return totalCurrentMonth;
-}
-
-export function getTotalPrevMonth1(): number {
-  return totalPrevMonth1;
-}
-
-export function getTotalPrevMonth2(): number {
-  return totalPrevMonth2;
-}
-
-export function getTotalPrevMonth3(): number {
-  return totalPrevMonth3;
-}
-
-export function getRobotTotalCurrentMonth(robotId: string): number {
-  // Implémentation à ajouter
-  return 0;
-}
-
-export function getRobotTotalPrevMonth1(robotId: string): number {
-  // Implémentation à ajouter
-  return 0;
-}
-
-export function getRobotTotalPrevMonth2(robotId: string): number {
-  // Implémentation à ajouter
-  return 0;
-}
-
-export function getRobotTotalPrevMonth3(robotId: string): number {
-  // Implémentation à ajouter
-  return 0;
-}
-
-function calculateMonthlyTotal(data: ReportingEntry[]): number {
-  let total = 0;
-  data.forEach(entry => {
-    const nbUnites = Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0;
-    total += nbUnites;
-  });
-  return total;
-}
 
 export async function initializeReportingData(): Promise<void> {
   try {
     // Calculer les 4 derniers mois basés sur la date actuelle
-    const currentDate = new Date();
+    let currentDate = new Date();
+
+    // Si on est le 1er jour du mois, utiliser le mois précédent
+    if (currentDate.getDate() === 1) {
+      // Créer une nouvelle date pour le dernier jour du mois précédent
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+    }
+
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1; // getMonth() retourne 0-11
     
@@ -500,15 +347,24 @@ export async function initializeReportingData(): Promise<void> {
     
     console.log('Mois à récupérer:', months);
     
-    // Récupérer toutes les données de reporting
-    const allReportingData = await fetchAllReportingData(months);
-    console.log('(dataStore / initializeReportingData) - allReportingData:', allReportingData);
+    // Faire 4 appels API distincts
+    const ReportingDataDe_N = await fetchAllReportingData(months[0]);
+    const ReportingDataDe_N_1 = await fetchAllReportingData(months[1]);
+    const ReportingDataDe_N_2 = await fetchAllReportingData(months[2]);
+    const ReportingDataDe_N_3 = await fetchAllReportingData(months[3]);
+
+    console.log('(dataStore / initializeReportingData) - Données récupérées:', {
+      currentMonth: ReportingDataDe_N,
+      prevMonth1: ReportingDataDe_N_1,
+      prevMonth2: ReportingDataDe_N_2,
+      prevMonth3: ReportingDataDe_N_3
+    });
     
-    // Filtrer les données par mois
-    const currentMonthData = allReportingData.filter((entry: any) => entry.ANNEE_MOIS === months[0]);
-    const prevMonth1Data = allReportingData.filter((entry: any) => entry.ANNEE_MOIS === months[1]);
-    const prevMonth2Data = allReportingData.filter((entry: any) => entry.ANNEE_MOIS === months[2]);
-    const prevMonth3Data = allReportingData.filter((entry: any) => entry.ANNEE_MOIS === months[3]);
+    // Utiliser directement les données récupérées
+    const currentMonthData = ReportingDataDe_N;
+    const prevMonth1Data = ReportingDataDe_N_1;
+    const prevMonth2Data = ReportingDataDe_N_2;
+    const prevMonth3Data = ReportingDataDe_N_3;
     
     // Générer les labels de mois en français
     const monthNames = [
@@ -520,23 +376,13 @@ export async function initializeReportingData(): Promise<void> {
     const prevMonth1Label = monthNames[(currentMonth - 2 + 12) % 12];
     const prevMonth2Label = monthNames[(currentMonth - 3 + 12) % 12];
     const prevMonth3Label = monthNames[(currentMonth - 4 + 12) % 12];
-    
-    // Mapper les données au format attendu
-    const mapReportingData = (data: any[]): ReportingEntry[] => {
-      return data.map((entry: any) => ({
-        AGENCE: entry.AGENCE,
-        'NOM PROGRAMME': entry.NOM_PROGRAMME,
-        'NB UNITES DEPUIS DEBUT DU MOIS': entry.NB_UNITES_DEPUIS_DEBUT_DU_MOIS?.toString() || '0',
-        ...entry // Inclure toutes les autres propriétés (dates formatées, etc.)
-      }));
-    };
-    
+  
     // Mettre à jour le cache
     cachedReportingData = {
-      currentMonth: mapReportingData(currentMonthData),
-      prevMonth1: mapReportingData(prevMonth1Data),
-      prevMonth2: mapReportingData(prevMonth2Data),
-      prevMonth3: mapReportingData(prevMonth3Data),
+      currentMonth: currentMonthData,
+      prevMonth1: prevMonth1Data,
+      prevMonth2: prevMonth2Data,
+      prevMonth3: prevMonth3Data,
       monthLabels: {
         currentMonth: currentMonthLabel,
         prevMonth1: prevMonth1Label,
@@ -544,24 +390,7 @@ export async function initializeReportingData(): Promise<void> {
         prevMonth3: prevMonth3Label
       }
     };
-    console.log('(dataStore / initializeReportingData) - cachedReportingData.currentMonth:', cachedReportingData.currentMonth.length);
-    console.log('(dataStore / initializeReportingData) - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
-    console.log('(dataStore / initializeReportingData) - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
-    console.log('(dataStore / initializeReportingData) - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
-    
-    // Calculer les totaux mensuels globaux
-    totalCurrentMonth = calculateMonthlyTotal(cachedReportingData.currentMonth);
-    totalPrevMonth1 = calculateMonthlyTotal(cachedReportingData.prevMonth1);
-    totalPrevMonth2 = calculateMonthlyTotal(cachedReportingData.prevMonth2);
-    totalPrevMonth3 = calculateMonthlyTotal(cachedReportingData.prevMonth3);
-    
-    console.log('(dataStore / initializeReportingData) Totaux', {
-      currentMonth: cachedReportingData.currentMonth.length,
-      prevMonth1: cachedReportingData.prevMonth1.length,
-      prevMonth2: cachedReportingData.prevMonth2.length,
-      prevMonth3: cachedReportingData.prevMonth3.length,
-      totals: { totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3 }
-    });
+
     
   } catch (error) {
     console.log('Erreur lors de l\'initialisation des données de reporting:', error);

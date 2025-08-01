@@ -24,21 +24,21 @@ export default function AgencySelector({ agencies, selectedAgencyId, onAgencyCha
       <SelectTrigger className="bg-white border border-gray-300 rounded-md h-9 w-[250px] text-sm">
         <SelectValue placeholder="Sélectionnez une agence">
           {agencies.length > 0
-            ? (agencies.find(a => a.idAgence === selectedAgencyId)?.libelleAgence || agencies.find(a => a.idAgence === selectedAgencyId)?.nomAgence)
+            ? (agencies.find(a => a.codeAgence === selectedAgencyId)?.libelleAgence || agencies.find(a => a.codeAgence === selectedAgencyId)?.codeAgence)
             : "TOUT"}
         </SelectValue>
       </SelectTrigger>
       <SelectContent className="bg-white border border-gray-300 rounded-md w-[350px]">
         {agencies.length > 0 ? (
           agencies.map((agency) => {
-            const displayText = agency.libelleAgence?.trim() || agency.nomAgence;
-            const agencyRobots = getRobotsByAgency(agency.idAgence);
+            const displayText = agency.libelleAgence?.trim() || agency.codeAgence;
+            const agencyRobots = getRobotsByAgency(agency.codeAgence);
             const hasRobots = agencyRobots.length > 1;
             
             return (
               <SelectItem
-                key={agency.idAgence}
-                value={agency.idAgence}
+                key={agency.codeAgence}
+                value={agency.codeAgence}
                 disabled={!hasRobots}
                 className={`text-sm ${!hasRobots ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
               >

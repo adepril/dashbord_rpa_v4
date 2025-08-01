@@ -24,8 +24,7 @@ import {
   initializeReportingData,
   getCachedAgencies,
   getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
-  getRobotsByAgency,
-  getRobotsByAgencyAndService,
+
   Agency,
   Program,
   isDataInitialized,
@@ -34,17 +33,8 @@ import {
   setUpdateRobotsCallback,
   getReportingData,
   ReportingEntry,
-
   loadAllAgencies,
   cachedReportingData,
-  getTotalCurrentMonth,
-  getTotalPrevMonth1,
-  getTotalPrevMonth2,
-  getTotalPrevMonth3,
-  getRobotTotalCurrentMonth,
-  getRobotTotalPrevMonth1,
-  getRobotTotalPrevMonth2,
-  getRobotTotalPrevMonth3,
   getMonthLabelCurrentMonth,
   getMonthLabelPrevMonth1,
   getMonthLabelPrevMonth2,
@@ -170,37 +160,27 @@ export default function Dashboard() {
           await loadAllAgencies();
           console.log('Toutes les agences chargées en cache:', getCachedAllAgencies());
 
+          // Charger les données de reporting pour 4 mois
           await initializeReportingData();
+          console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
+          console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
+          console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
+          console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
 
           // Étape 2: Une fois les données mises en cache, les récupérer et définir l'état du composant
           const userAgencies = userId === '0' ? getCachedAllAgencies() : getCachedAgencies();
           setAgencies(userAgencies);
+          //console.log('(Dashboard / initializeReportingData) - Agences récupérées:', userAgencies);
 
           // Définir l'agence par défaut
           const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency);
 
           // Définir le service par défaut
           setSelectedService('TOUT');
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Service par défaut: TOUT');
 
-          // Charger les programmes pour l'agence et le service par défaut
-          const allRobots = getRobotsByAgencyAndService(defaultAgency?.codeAgence || 'TOUT', 'TOUT');
-          setPrograms(allRobots);
-          updateService(allRobots); // Mettre à jour les services disponibles
-
-          // Définir le robot par défaut
-          if (allRobots.length > 0) {
-            const defaultRobot = allRobots.find((r: Program) => r.robot === "TOUT") || allRobots[0];
-            setSelectedRobot(defaultRobot);
-            setSelectedRobotData(defaultRobot);
-            setUseChart4All(true);
-          }
-
-          // Définir les totaux mensuels
-          setTotalCurrentMonth(getTotalCurrentMonth());
-          setTotalPrevMonth1(getTotalPrevMonth1());
-          setTotalPrevMonth2(getTotalPrevMonth2());
-          setTotalPrevMonth3(getTotalPrevMonth3());
 
         } catch (error) {
           console.error('Erreur lors du chargement des données initiales:', error);
@@ -218,38 +198,6 @@ export default function Dashboard() {
     };
   }, [userId]);
 
-  // ------------------------------------------------------------------
-  // Mise à jour des programmes quand l'agence ou le service change
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    // Ce hook gère les changements de sélection par l'utilisateur, APRÈS le chargement initial.
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return; // On saute l'exécution au premier rendu.
-    }
-
-    const loadProgramsForSelection = () => {
-      if (selectedAgency) {
-        const agencyCode = selectedAgency.codeAgence;
-        const allRobots = getRobotsByAgencyAndService(agencyCode, selectedService);
-
-        setPrograms(allRobots);
-        updateService(allRobots);
-
-        // Si la sélection change, on réinitialise le robot sur "TOUT" ou le premier de la liste.
-        if (allRobots.length > 0) {
-          const defaultRobot = allRobots.find((r: Program) => r.robot === "TOUT") || allRobots[0];
-          setSelectedRobot(defaultRobot);
-          setSelectedRobotData(defaultRobot);
-        } else {
-          setSelectedRobot(null);
-          setSelectedRobotData(null);
-        }
-      }
-    };
-
-    loadProgramsForSelection();
-  }, [selectedAgency, selectedService]);
 
   // ------------------------------------------------------------------
   // Chargement des données pour le programme (robot) sélectionné
@@ -454,34 +402,8 @@ export default function Dashboard() {
   const handleAgencyChange = (agencyCode: string) => {
     const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
     console.log('--- AGENCY CHANGE BEGIN ---');
-    console.log('Agence choisie:', agencySelected);
-    setSelectedAgency(agencySelected || null);
-    sessionStorage.setItem('selectedAgencyCode', agencyCode);
 
-    // Réinitialiser le service à "TOUT"
-    setSelectedService('');
 
-    // Réinitialiser les états
-    setPrograms([]);
-    setSelectedRobot(null);
-    setSelectedRobotData(null);
-    setRobotData(null);
-    setRobotData1(null);
-    setRobotData2(null);
-    setHistoriqueData([]);
-
-    // Charger les nouveaux robots depuis le cache
-    if (agencySelected && isDataInitialized()) {
-      const allRobots = agencySelected.codeAgence === 'TOUT' ? getRobotsByAgency('TOUT') : getRobotsByAgency(agencySelected.codeAgence);
-      console.log('handleAgencyChange - Robots chargés:', allRobots);
-      setPrograms(allRobots);
-      updateService(allRobots);
-      if (allRobots.length > 0) {
-        const firstRobot = allRobots.find((r: Program) => r.robot === "TOUT") || allRobots[0];
-        setSelectedRobot(firstRobot);
-        setSelectedRobotData(firstRobot);
-      }
-    }
     console.log('--- AGENCY CHANGE END ---');
   };
 

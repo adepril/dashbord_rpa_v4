@@ -187,30 +187,30 @@ export async function fetchDataReportingByAgency(agence: string) {
   }
 }
 
+
 /**
- * Fetches reporting data for the month in parameter via the API.
+ * Fetches reporting data for multiple months via the API using a single query.
+ * @param months Array of month identifiers (e.g., numbers representing YYYYMM).
  * @returns A Promise that resolves to an array of reporting data objects.
  */
-export async function fetchAllReportingData(months: number[]): Promise<any[]> {
+export async function fetchAllReportingData(month: number): Promise<any[]> {
+  //console.log('Fetching reporting data for month:', month);
   try {
-    const allDataPromises = months.map(async (month) => {
-      const response = await fetch(`/api/sql?table=Reporting&AnneeMois=${month}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    });
+    const url = `/api/sql?table=Reporting&Clef=&AnneeMois=${month}`;
+    //console.log('Constructed URL for reporting data:', url);
 
-    const allData = await Promise.all(allDataPromises);
-    const combinedData = allData.flat(); // Combine all arrays into a single one
-    console.log('Retrieve all reporting data (dataFetcher / fetchAllReportingData)', combinedData);
-    return combinedData;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    //console.log('(dataFetcher / fetchAllReportingData) Retrieve reporting '+month+':', data);
+    return data;
   } catch (error) {
     console.log('Error fetching all reporting data:', error);
     return [];
   }
 }
-
 /**
  * Fetches all services via the API.
  * @returns A Promise that resolves to an array of service objects with id and name properties.

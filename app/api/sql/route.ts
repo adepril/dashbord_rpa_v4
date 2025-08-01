@@ -50,16 +50,19 @@ export async function GET(request: NextRequest) {
             case 'Reporting':
                 const clefRobot = url.searchParams.get('Clef');
                 const anneeMois = url.searchParams.get('AnneeMois');
-                
+
                 query = `SELECT * FROM [BD_RPA_TEST].[dbo].[Reporting] WHERE 1=1`;
                 if (clefRobot && clefRobot.length > 0) {
                     query += ` AND [CLEF] = @clefRobot`;
                     params.push({ name: 'clefRobot', type: sql.NVarChar(150), value: clefRobot });
                 }
+                
                 if (anneeMois) {
                     query += ` AND [ANNEE_MOIS] = @anneeMois`;
-                    params.push({ name: 'anneeMois', type: sql.Int, value: anneeMois });
+                    params.push({ name: 'anneeMois', type: sql.Int, value: parseInt(anneeMois) });
                 }
+
+                //console.log('(sql/route.ts) Reporting query:', query, 'params:', params);   
                 result = await executeQuery(query, params);
                 return NextResponse.json(result.recordset);
 
