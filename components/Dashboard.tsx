@@ -233,7 +233,7 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   useEffect(() => {
     const loadProgramData = async () => {
-      console.log('-(Dashboard) loadProgramData - selectedRobotData:', selectedRobotData);
+      console.log('[Dashboard] loadProgramData - selectedRobotData:', selectedRobotData);
       if (selectedRobotData) {
         if (selectedRobotData.robot === "TOUT") {
           // ****** Chart4All.tsx ******
@@ -242,7 +242,7 @@ export default function Dashboard() {
           const arrJoursDuMois: string[] = new Array(31).fill("0");
           const arrJoursDuMois_Type1: string[] = [...arrJoursDuMois];
           const arrJoursDuMois_Type2: string[] = [...arrJoursDuMois];
-          let rawData: DataEntry[] = [];
+          let reportingDataForThisRobot: DataEntry[] = [];
 
           let totalUnitesMoisCourant_Type1 = 0;
           let totalUnitesMoisCourant_Type2 = 0;
@@ -252,7 +252,7 @@ export default function Dashboard() {
           let displayMonth = currentDate.getMonth() + 1;
           let displayYear = currentDate.getFullYear();
           
-          console.log(`[Dashboard] Avant ajustement - selectedMonth: ${selectedMonth}, currentDate: ${currentDate.toLocaleDateString()}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
+          //console.log(`[Dashboard] Avant ajustement - selectedMonth: ${selectedMonth}, currentDate: ${currentDate.toLocaleDateString()}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
 
           if (selectedMonth !== 'N') {
             const monthOffset = parseInt(selectedMonth.split('-')[1]);
@@ -262,45 +262,35 @@ export default function Dashboard() {
               displayYear -= 1;
             }
           }
-          
-          console.log(`[Dashboard] Après ajustement selectedMonth - displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
-
-          // Ajustement si on est le 1er du mois et mois courant
-          // if (currentDate.getDate() === 1) {  
-          //   //console.log(`[Dashboard] Règle spéciale 1er du mois appliquée (selectedMonth: N)`);
-          //   if (displayMonth === 1) {
-          //     displayMonth = 12;
-          //     displayYear -= 1;
-          //   } else {
-          //     displayMonth -= 1;
-          //   }
-          // }
+          //console.log(`[Dashboard] selectedMonth: ${selectedMonth}, currentDate: ${currentDate.toLocaleDateString()}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
           
           const currentMonth = displayMonth.toString().padStart(2, '0');
           const currentYear = displayYear;
-          console.log(`[Dashboard] Final - currentMonth (padded): ${currentMonth}, currentYear: ${currentYear}`);
+          console.log(`[Dashboard] loadProgramData - currentDate: ${currentDate.toLocaleDateString()}, selectedMonth: ${selectedMonth}, currentMonth: ${currentMonth}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
 
-          for (const robot of programs) {
+          // Parcourir tous les robots
+          for (const robot of programs) { 
             if (robot.robot === "TOUT" || robot.robot === null) 
-              continue;
+              continue; // Ignorer le robot "TOUT" ou les robots sans nom
             // Récupérer les données pour le mois sélectionné
-            rawData = getReportingData(selectedMonth)
+            reportingDataForThisRobot = getReportingData(selectedMonth)
               .filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM_PROGRAMME'] === robot.id_robot)
               .map((entry: any) => ({
                 ...entry,
                 'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
               }));
 
-            if (rawData.length > 0) {
-              console.log(`[Dashboard] loadProgramData - robot.robot ${robot.robot}:`, rawData);
+            if (reportingDataForThisRobot.length > 0) {
+              console.log(`[Dashboard] loadProgramData - robot.robot: "${robot.robot}" - robot.agency: "${robot.agence}" - reportingDataForThisRobot:`, reportingDataForThisRobot);
               console.log(`[Dashboard] loadProgramData - selectedAgency:`, selectedAgency);
             }
           
-            if (robot.agence !== selectedAgency?.codeAgence || selectedAgency?.codeAgence !== "TOUT") {
+            if (robot.agence === "TOUT") {
               const currentProgram = programs.find(p => p.robot === robot.robot);
               const robotType = currentProgram?.type_gain;
+              console.log(`[Dashboard] loadProgramData - robot.robot: "${robot.robot}" - robotType: "${robotType}"`);
 
-              for (const entry of rawData) {
+              for (const entry of reportingDataForThisRobot) {
                 const unitFactor = robot.type_unite !== 'temps' || robot.temps_par_unite === '0' ? 1 : Number(robot.temps_par_unite);
                 if (robotType === 'temps') {
                   totalUnitesMoisCourant_Type1 += (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0) * unitFactor;
@@ -321,15 +311,11 @@ export default function Dashboard() {
                 }
               }
 
-              // if (selectedAgency.nomAgence !== 'TOUT') {
-              //   oneRobotEvolution = await fetchEvolutionsByProgram(robot.robot, selectedMonth);
-              //   allRobotsEvolution.push(...oneRobotEvolution);
-              // }
             }
           }
 
           const mergedDataType1: DataEntry = {
-            ...rawData[0],
+            ...reportingDataForThisRobot[0],
             'NB UNITES DEPUIS DEBUT DU MOIS': formatNumber(totalUnitesMoisCourant_Type1),
           };
 
