@@ -58,7 +58,10 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
-// États locaux du composant :
+
+  console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
+
+  // États locaux du composant :
 // robots : tableau de robots filtrés pour l'affichage dans la section "Le saviez-vous ?"
 // currentIndex : index du robot actuellement affiché dans le diaporama
 // isPaused : booléen indiquant si le défilement automatique des robots est en pause
@@ -147,7 +150,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 // Construction des données pour le graphique sur 31 jours :
 // Pour chaque jour, recherche une valeur dans data1 ou attribue 0 par défaut
   // Chart 1
-  const chartData1 = Array.from({ length: 31 }, (_, i) => {
+  const chartData = Array.from({ length: 31 }, (_, i) => {
     const day = (i + 1).toString().padStart(2, '0');
     const dateKey = `${day}/${displayMonth.toString().padStart(2, '0')}/${displayYear}`;
     let value = 0;
@@ -160,7 +163,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
     };
   }); // Chart 1
   // Si toutes les valeurs sont nulles, affichage d'un message informant l'utilisateur
-  if (chartData1.every(item => item.valeur === 0)) {
+  if (chartData.every(item => item.valeur === 0)) {
     return (
       <div className="flex justify-center items-center h-[400px] text-gray-500">
         L'histogramme ne peut être généré car aucune donnée disponible pour ce programme
@@ -181,7 +184,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
             <div className="ml-[10%] text-left text-xl font-bold mb-4">Gain de temps</div>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={chartData1}
+                data={chartData}
                 width={600}
                 height={600}
                 barSize={40}

@@ -126,3 +126,111 @@ setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB_UNITES_DEPUI
 2. Vérifier que les données journalières sont correctement extraites et affichées
 3. Vérifier que les totaux mensuels sont correctement calculés
 4. Vérifier que le filtrage par agence et par robot fonctionne correctement
+
+## 2025-08-04 - Correction de l'erreur `Cannot read properties of null (reading 'userName')`
+
+### Problème identifié
+Une erreur `TypeError: Cannot read properties of null (reading 'userName')` se produisait à la ligne 470 de `components/Dashboard.tsx` lors de l'affichage du nom d'utilisateur. Cela était dû au fait que l'objet `userData` était `null` au moment du rendu initial du composant, avant que les données de l'utilisateur ne soient chargées depuis `localStorage` via le `useEffect`.
+
+### Causes du problème
+Le composant tentait d'accéder directement à `userData.userName` dans le JSX (`{userData.userName}`) alors que `userData` n'avait pas encore été initialisé avec les données du `localStorage` (sa valeur initiale étant `null`). Bien que les variables `userId` et `userName` soient protégées par l'opérateur de chaînage optionnel (`?.`), l'utilisation directe de `userData.userName` dans le JSX contournait cette protection.
+
+### Modifications apportées
+**Ligne 470** :
+```typescript
+// Avant
+<svg ... /> {userData.userName}
+
+// Après
+<svg ... /> {userName}
+```
+La variable `userName` est déjà définie avec une gestion sécurisée (`userData?.userName || ''`), garantissant qu'une chaîne vide est utilisée si `userData` est `null` ou `undefined`.
+
+### Impact des modifications
+- L'erreur `TypeError: Cannot read properties of null (reading 'userName')` est résolue.
+- Le nom d'utilisateur s'affiche correctement une fois que `userData` est chargé.
+- Si `userData` n'est pas disponible (par exemple, si l'utilisateur n'est pas connecté ou si les données ne sont pas encore chargées), une chaîne vide est affichée, évitant ainsi le crash de l'application.
+
+### Fichiers modifiés
+- `components/Dashboard.tsx` : Correction de l'affichage du nom d'utilisateur.
+
+### Tests à effectuer
+1. Vérifier que le tableau de bord se charge sans erreur.
+2. Vérifier que le nom d'utilisateur s'affiche correctement après la connexion.
+3. Vérifier le comportement si l'utilisateur n'est pas connecté (redirection vers la page de login).
+
+## 2025-08-04 - Correction du problème d'accès à robotDataForBarChart après mise à jour d'état
+
+### Problème identifié
+À la ligne 334 de `components/Dashboard.tsx`, le code tentait d'afficher `robotDataForBarChart` dans la console juste après l'avoir défini avec `setRobotDataForBarChart(mergedData)` à la ligne 332, mais la valeur affichée était `null`.
+
+### Causes du problème
+Ce comportement est normal avec React car les mises à jour d'état sont asynchrones. Lorsque vous appelez `setRobotDataForBarChart(mergedData)`, React ne met pas à jour l'état immédiatement. La valeur de `robotDataForBarChart` ne sera mise à jour qu'au prochain rendu du composant.
+
+### Solutions proposées
+
+#### Solution 1: Utiliser la variable `mergedData` directement (recommandée)
+La solution la plus simple est d'utiliser directement la variable `mergedData` que vous venez de créer, car elle contient les mêmes données que celles que vous essayez de stocker dans `robotDataForBarChart`.
+
+```typescript
+// À la ligne 334, remplacez :
+console.log('[Dashboard] loadProgramData - robotdataForBarChart set for Chart4All:', robotDataForBarChart);
+
+// Par :
+console.log('[Dashboard] loadProgramData - robotdataForBarChart set for Chart4All:', mergedData);
+```
+
+#### Solution 2: Utiliser un useEffect pour surveiller les changements de robotDataForBarChart
+Si vous avez besoin d'exécuter du code lorsque `robotDataForBarChart` est mis à jour, vous pouvez utiliser un hook `useEffect` :
+
+```typescript
+useEffect(() => {
+  if (robotDataForBarChart) {
+    console.log('[Dashboard] useEffect - robotDataForBarChart updated:', robotDataForBarChart);
+    // Autres actions à effectuer lorsque robotDataForBarChart est mis à jour
+  }
+}, [robotDataForBarChart]);
+```
+
+#### Solution 3: Utiliser une fonction callback avec setRobotDataForBarChart
+Vous pouvez également utiliser une fonction callback avec `setRobotDataForBarChart` pour accéder à la valeur mise à jour :
+
+```typescript
+setRobotDataForBarChart(mergedData);
+setUseChart4All(true);
+
+// Utiliser une fonction callback pour accéder à la valeur mise à jour
+setRobotDataForBarChart(prevData => {
+  console.log('[Dashboard] loadProgramData - robotdataForBarChart set for Chart4All:', mergedData);
+  return mergedData;
+});
+```
+
+#### Solution 4: Utiliser une référence (useRef) pour stocker les données
+Si vous avez besoin d'accéder immédiatement aux données, vous pouvez utiliser une référence en plus de l'état :
+
+```typescript
+const robotDataForBarChartRef = useRef<any>(null);
+
+// Dans votre fonction loadProgramData :
+robotDataForBarChartRef.current = mergedData;
+setRobotDataForBarChart(mergedData);
+setUseChart4All(true);
+console.log('[Dashboard] loadProgramData - robotdataForBarChart set for Chart4All:', robotDataForBarChartRef.current);
+```
+
+### Recommandation
+La solution 1 est la plus simple et la plus appropriée dans ce cas, car vous avez déjà les données dans la variable `mergedData`. Il n'est pas nécessaire d'attendre la mise à jour de l'état pour les utiliser dans le console.log.
+
+### Impact des modifications
+- Le console.log affichera correctement les données au lieu de `null`
+- Le comportement du reste de l'application reste inchangé
+- Aucun impact sur les performances
+
+### Fichiers potentiellement à modifier
+- `components/Dashboard.tsx` : Ligne 334
+
+### Tests à effectuer
+1. Vérifier que le console.log affiche correctement les données
+2. Vérifier que le graphique Chart4All s'affiche correctement avec les données
+3. Vérifier que le reste du composant fonctionne comme avant
