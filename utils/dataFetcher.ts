@@ -193,7 +193,7 @@ export async function fetchDataReportingByAgency(agence: string) {
  * @param months Array of month identifiers (e.g., numbers representing YYYYMM).
  * @returns A Promise that resolves to an array of reporting data objects.
  */
-export async function fetchAllReportingData(month: number): Promise<any[]> {
+export async function fetchReportingData(month: number): Promise<any[]> {
   //console.log('Fetching reporting data for month:', month);
   try {
     const url = `/api/sql?table=Reporting&Clef=&AnneeMois=${month}`;

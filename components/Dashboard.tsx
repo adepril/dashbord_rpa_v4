@@ -87,6 +87,17 @@ interface MergedRequestFormProps {
 // - L'ouverture de formulaires pour les demandes
 // ============================================================
 export default function Dashboard() {
+// Constante pour représenter l'option "TOUT" comme un objet Program valide
+  const TOUT_PROGRAM: Program = {
+    clef: 'TOUT',
+    robot: 'TOUT',
+    id_robot: 'TOUT',
+    agence: 'TOUT',
+    type_unite: 'unite',
+    temps_par_unite: '0',
+    type_gain: 'temps',
+    service: 'TOUT'
+  };
   // ------------------------------------------------------------------
   // États pour divers paramètres et données
   // ------------------------------------------------------------------
@@ -163,7 +174,7 @@ export default function Dashboard() {
           // Étape 1: Charger toutes les données nécessaires dans le cache de manière séquentielle
           await loadAllAgencies();
 
-          console.log('(Dashboard) Toutes les agences chargées en cache:', getCachedAllAgencies());
+          //console.log('(Dashboard) Toutes les agences chargées en cache:', getCachedAllAgencies());
           // Une fois les données mises en cache, les récupérer et définir l'état du composant
           const userAgencies = getCachedAllAgencies();
           setAgencies(userAgencies);
@@ -172,11 +183,11 @@ export default function Dashboard() {
           // Définir l'agence par défaut
           const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
-          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
+          //console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
 
           // Étape 2: Charger tous les robots
           await loadAllRobots();
-          console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobots);
+          //console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobots);
           setPrograms(cachedRobots);
 
           //Etape 3: Charger les services de la table 'Services'
@@ -187,6 +198,9 @@ export default function Dashboard() {
           setSelectedService('TOUT'); //?
           console.log('(Dashboard / initializeReportingData) loadInitialData - Service par défaut: TOUT');
 
+          setSelectedMonth('N'); // Réinitialiser le mois sélectionné à 'N'
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Mois sélectionné:', selectedMonth);
+
           // Étape 4:Charger les données de reporting pour 4 mois
           await initializeReportingData();
           console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
@@ -194,6 +208,9 @@ export default function Dashboard() {
           console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
           console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
 
+          //selectedRobotData = 'TOUT' => 'Char4All.tsx'
+          setSelectedRobotData(TOUT_PROGRAM);
+          
         } catch (error) {
           console.error('Erreur lors du chargement des données initiales:', error);
           setError('Erreur lors du chargement des données');
@@ -216,6 +233,7 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   useEffect(() => {
     const loadProgramData = async () => {
+      console.log('-(Dashboard) loadProgramData - selectedRobotData:', selectedRobotData);
       if (selectedRobotData) {
         if (selectedRobotData.robot === "TOUT") {
           // ****** Chart4All.tsx ******
@@ -234,7 +252,7 @@ export default function Dashboard() {
           let displayMonth = currentDate.getMonth() + 1;
           let displayYear = currentDate.getFullYear();
           
-          //console.log(`[Dashboard] Avant ajustement - selectedMonth: ${selectedMonth}, currentDate: ${currentDate.toLocaleDateString()}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
+          console.log(`[Dashboard] Avant ajustement - selectedMonth: ${selectedMonth}, currentDate: ${currentDate.toLocaleDateString()}, displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
 
           if (selectedMonth !== 'N') {
             const monthOffset = parseInt(selectedMonth.split('-')[1]);
@@ -248,19 +266,19 @@ export default function Dashboard() {
           console.log(`[Dashboard] Après ajustement selectedMonth - displayMonth: ${displayMonth}, displayYear: ${displayYear}`);
 
           // Ajustement si on est le 1er du mois et mois courant
-          if (currentDate.getDate() === 1) {  
-            //console.log(`[Dashboard] Règle spéciale 1er du mois appliquée (selectedMonth: N)`);
-            if (displayMonth === 1) {
-              displayMonth = 12;
-              displayYear -= 1;
-            } else {
-              displayMonth -= 1;
-            }
-          }
+          // if (currentDate.getDate() === 1) {  
+          //   //console.log(`[Dashboard] Règle spéciale 1er du mois appliquée (selectedMonth: N)`);
+          //   if (displayMonth === 1) {
+          //     displayMonth = 12;
+          //     displayYear -= 1;
+          //   } else {
+          //     displayMonth -= 1;
+          //   }
+          // }
           
           const currentMonth = displayMonth.toString().padStart(2, '0');
           const currentYear = displayYear;
-          //console.log(`[Dashboard] Final - currentMonth (padded): ${currentMonth}, currentYear: ${currentYear}`);
+          console.log(`[Dashboard] Final - currentMonth (padded): ${currentMonth}, currentYear: ${currentYear}`);
 
           for (const robot of programs) {
             if (robot.robot === "TOUT" || robot.robot === null) 
@@ -270,28 +288,33 @@ export default function Dashboard() {
               .filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM_PROGRAMME'] === robot.id_robot)
               .map((entry: any) => ({
                 ...entry,
-                'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB UNITES DEPUIS DEBUT DU MOIS']),
+                'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
               }));
 
-            if (robot.agence === selectedAgency?.codeAgence || selectedAgency?.codeAgence === "TOUT") {
+            if (rawData.length > 0) {
+              console.log(`[Dashboard] loadProgramData - robot.robot ${robot.robot}:`, rawData);
+              console.log(`[Dashboard] loadProgramData - selectedAgency:`, selectedAgency);
+            }
+          
+            if (robot.agence !== selectedAgency?.codeAgence || selectedAgency?.codeAgence !== "TOUT") {
               const currentProgram = programs.find(p => p.robot === robot.robot);
               const robotType = currentProgram?.type_gain;
 
               for (const entry of rawData) {
                 const unitFactor = robot.type_unite !== 'temps' || robot.temps_par_unite === '0' ? 1 : Number(robot.temps_par_unite);
                 if (robotType === 'temps') {
-                  totalUnitesMoisCourant_Type1 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0) * unitFactor;
-                } else { 
-                  totalUnitesMoisCourant_Type2 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
+                  totalUnitesMoisCourant_Type1 += (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0) * unitFactor;
+                } else {
+                  totalUnitesMoisCourant_Type2 += (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
                 }
                 for (let i = 1; i <= 31; i++) {
-                  const dateKey = i.toString().padStart(2, '0') + '/' + currentMonth + '/' + currentYear;
-                  if (entry[dateKey]) {
-                    const value = entry[dateKey];
+                  const dayColumn = `JOUR${i}`;
+                  if (entry[dayColumn]) {
+                    const value = entry[dayColumn];
                     const idx = i - 1;
                     if (robotType === 'temps') {
                       arrJoursDuMois_Type1[idx] = `${Number(arrJoursDuMois_Type1[idx]) + Number(value)}`;
-                    } else { 
+                    } else {
                       arrJoursDuMois_Type2[idx] = `${Number(arrJoursDuMois_Type2[idx]) + Number(value)}`;
                     }
                   }
@@ -329,9 +352,9 @@ export default function Dashboard() {
           const calculateFilteredTotal = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
             const reportingData = getReportingData(monthKey);
             return reportingData.reduce((acc, entry) => {
-              const entryId = `${entry.AGENCE}_${entry['NOM PROGRAMME']}`;
+              const entryId = `${entry.AGENCE}_${entry['NOM_PROGRAMME']}`;
               if (programIds.has(entryId)) {
-                return acc + (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
+                return acc + (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
               }
               return acc;
             }, 0);
@@ -385,8 +408,8 @@ export default function Dashboard() {
             const processedData = {
               ...robotEntry,
               'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
-                ? String(Number(robotEntry['NB UNITES DEPUIS DEBUT DU MOIS']))
-                : String(robotEntry['NB UNITES DEPUIS DEBUT DU MOIS']),
+                ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
+                : String(robotEntry['NB_UNITES_DEPUIS DEBUT DU MOIS']),
               ...selectedRobotData
             };
             setRobotData(processedData);
@@ -394,10 +417,10 @@ export default function Dashboard() {
             setRobotData(null); // Réinitialiser robotData si aucune entrée n'est trouvée
           }
 
-          setTotalCurrentMonth(currentMonthData[0] ? Number(currentMonthData[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-          setTotalPrevMonth1(prevMonth1Data[0] ? Number(prevMonth1Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-          setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-          setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
+          setTotalCurrentMonth(currentMonthData[0] ? Number(currentMonthData[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth1(prevMonth1Data[0] ? Number(prevMonth1Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
 
           // const oneRobotEvolution = await fetchEvolutionsByProgram(selectedRobotData.robot, selectedMonth);
           // setHistoriqueData(oneRobotEvolution);

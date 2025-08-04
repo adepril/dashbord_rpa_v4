@@ -19,7 +19,7 @@
 // ------------------------------------------------------------
 
 import {
-          fetchAllReportingData,
+          fetchReportingData,
           fetchAllServices
         } from './dataFetcher';
 
@@ -439,10 +439,10 @@ export async function initializeReportingData(): Promise<void> {
     console.log('Mois à récupérer:', months);
     
     // Faire 4 appels API distincts
-    const ReportingDataDe_N = await fetchAllReportingData(months[0]);
-    const ReportingDataDe_N_1 = await fetchAllReportingData(months[1]);
-    const ReportingDataDe_N_2 = await fetchAllReportingData(months[2]);
-    const ReportingDataDe_N_3 = await fetchAllReportingData(months[3]);
+    const ReportingDataDe_N = await fetchReportingData(months[0]);
+    const ReportingDataDe_N_1 = await fetchReportingData(months[1]);
+    const ReportingDataDe_N_2 = await fetchReportingData(months[2]);
+    const ReportingDataDe_N_3 = await fetchReportingData(months[3]);
 
     console.log('(dataStore / initializeReportingData) - Données récupérées:', {
       currentMonth: ReportingDataDe_N,
