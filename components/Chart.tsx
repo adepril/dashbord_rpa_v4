@@ -95,8 +95,9 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
     const dateKey = `${day}/${displayMonth.toString().padStart(2, '0')}/${displayYear}`;
     let value = 0;
     // Check if data exists for the given dateKey and assign it to value
-    if (data && data[dateKey]) {
-      value = Number(data[dateKey]);
+    const dayField = `JOUR${i + 1}`; // Utiliser JOUR1, JOUR2, etc.
+    if (data && data[dayField]) {
+      value = Number(data[dayField]);
     }
 
     return {
@@ -184,7 +185,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
                       }} />
                     <Bar
                       dataKey="valeur"
-                      fill={robotType?.toLowerCase() === "temps" ? "#3498db" : "#EA580C"}
+                      fill="#3498db"
                       radius={[4, 4, 0, 0]}
                       name="Quantité"
                       label={{

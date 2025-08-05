@@ -179,6 +179,8 @@ export async function loadAllRobots(): Promise<void> {
       valide_oui_non: robot.VALIDE_OUI_NON,
       id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
     }));
+    // Trier les robots par ordre alphabétique
+    cachedRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
     // Ajouter "TOUT" au début de la liste
     cachedRobots.unshift({
       clef: "TOUT",

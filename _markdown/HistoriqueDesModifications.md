@@ -234,3 +234,98 @@ La solution 1 est la plus simple et la plus appropriée dans ce cas, car vous av
 1. Vérifier que le console.log affiche correctement les données
 2. Vérifier que le graphique Chart4All s'affiche correctement avec les données
 3. Vérifier que le reste du composant fonctionne comme avant
+
+## 2025-08-05 - Tri alphabétique de la liste des robots
+
+### Problème identifié
+La liste déroulante des robots n'était pas triée, ce qui pouvait rendre la navigation difficile pour l'utilisateur.
+
+### Causes du problème
+La fonction `loadAllRobots` dans `utils/dataStore.ts` chargeait les robots dans l'ordre de récupération depuis la base de données, sans appliquer de tri spécifique.
+
+### Modifications apportées
+**Fichier :** `utils/dataStore.ts`
+
+**Fonction :** `loadAllRobots`
+
+**Description :**
+Ajout d'une ligne de tri alphabétique sur le nom du robot (`robot`) après la récupération des données et avant l'ajout de l'option "TOUT" à la liste `cachedRobots`.
+
+```typescript
+    cachedRobots = data.map((robot: any) => ({
+      clef: robot.CLEF,
+      robot: robot.NOM_PROGRAMME,
+      agence: robot.AGENCE,
+      service: robot.SERVICE,
+      description: robot.DESCRIPTION,
+      probleme: robot.PROBLEME,
+      description_long: robot.DESCRIPTION_LONG,
+      resultat: robot.RESULTAT,
+      date_maj: robot.DATE_MAJ,
+      type_unite: robot.TYPE_UNITE,
+      temps_par_unite: robot.TEMPS_PAR_UNITE,
+      type_gain: robot.TYPE_GAIN,
+      validateur: robot.VALIDATEUR,
+      valide_oui_non: robot.VALIDE_OUI_NON,
+      id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
+    }));
+    // Trier les robots par ordre alphabétique
+    cachedRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
+    // Ajouter "TOUT" au début de la liste
+    cachedRobots.unshift({
+      clef: "TOUT",
+      robot: "TOUT",
+      id_robot: "TOUT",
+      agence: "TOUT",
+      service: "TOUT",
+      description: "Tous les robots",
+      probleme: "",
+      description_long: "",
+      resultat: "",
+      date_maj: "",
+      type_unite: "unité",
+      temps_par_unite: "0",
+      type_gain: "unité",
+      validateur: "",
+      valide_oui_non: ""
+    });
+```
+
+### Impact des modifications
+- La liste déroulante des robots dans l'interface utilisateur sera désormais triée par ordre alphabétique, améliorant ainsi l'expérience utilisateur.
+
+### Fichiers modifiés
+- `utils/dataStore.ts` : Ajout de la logique de tri dans `loadAllRobots`.
+
+### Tests à effectuer
+1. Vérifier que la liste déroulante des robots est bien triée alphabétiquement.
+2. S'assurer que la sélection des robots fonctionne toujours correctement après le tri.
+
+## 2025-08-05 - Harmonisation de la couleur des barres de l'histogramme dans Chart.tsx
+
+### Problème identifié
+La couleur des barres de l'histogramme dans `Chart.tsx` n'était pas la même que celle utilisée dans `Chart4All.tsx`, ce qui pouvait créer une incohérence visuelle.
+
+### Modifications apportées
+**Fichier :** `components/Chart.tsx`
+
+**Description :**
+La propriété `fill` du composant `<Bar>` a été modifiée pour utiliser une couleur fixe (`#3498db`), correspondant à la couleur bleue utilisée dans `Chart4All.tsx`. Auparavant, la couleur variait en fonction du `robotType`.
+
+```typescript
+// Avant
+fill={robotType?.toLowerCase() === "temps" ? "#3498db" : "#EA580C"}
+
+// Après
+fill="#3498db"
+```
+
+### Impact des modifications
+- La couleur des barres de l'histogramme dans `Chart.tsx` est désormais uniformisée avec celle de `Chart4All.tsx`.
+- Amélioration de la cohérence visuelle de l'application.
+
+### Fichiers modifiés
+- `components/Chart.tsx` : Modification de la couleur de remplissage des barres.
+
+### Tests à effectuer
+1. Vérifier que les barres de l'histogramme dans `Chart.tsx` sont bien de couleur bleue (`#3498db`).
