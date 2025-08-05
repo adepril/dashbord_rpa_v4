@@ -329,3 +329,62 @@ fill="#3498db"
 
 ### Tests à effectuer
 1. Vérifier que les barres de l'histogramme dans `Chart.tsx` sont bien de couleur bleue (`#3498db`).
+
+## 2025-08-05 - Correction de l'affichage de l'histogramme dans Chart.tsx
+
+### Problème identifié
+L'histogramme dans `Chart.tsx` ne s'affichait pas, ou s'affichait avec des données vides, car la transformation des données ne correspondait pas au format des données brutes reçues de `Dashboard.tsx`.
+
+### Causes du problème
+1. **Incompatibilité de format des données**: `Chart.tsx` attendait des clés de date (ex: "01/08/2025") pour extraire les valeurs de l'histogramme, tandis que les données brutes fournies par `Dashboard.tsx` contenaient des champs `JOUR1`, `JOUR2`, ..., `JOUR31`.
+2. **Échec de la transformation**: La logique de construction de `chartData` dans `Chart.tsx` ne parvenait pas à récupérer les valeurs réelles des jours, car elle recherchait des clés de date qui n'existaient pas dans l'objet `data` fourni. En conséquence, toutes les valeurs de `chartData` étaient à zéro, ce qui entraînait un histogramme vide.
+
+### Modifications apportées
+**Fichier :** `components/Chart.tsx`
+
+**Description :**
+La logique de création du tableau `chartData` a été modifiée pour accéder directement aux champs `JOURx` de l'objet `data` au lieu de tenter de construire des clés de date.
+
+```typescript
+// Avant (lignes 93-106 de Chart.tsx)
+const chartData = Array.from({ length: 31 }, (_, i) => {
+  const day = (i + 1).toString().padStart(2, '0');
+  const dateKey = `${day}/${displayMonth.toString().padStart(2, '0')}/${displayYear}`;
+  let value = 0;
+  if (data && data[dateKey]) { // Problème ici: recherche 'data["01/08/2025"]'
+    value = Number(data[dateKey]);
+  }
+  return {
+    date: dateKey,
+    valeur: value
+  };
+});
+
+// Après (lignes 93-106 de Chart.tsx)
+const chartData = Array.from({ length: 31 }, (_, i) => {
+  const day = (i + 1).toString().padStart(2, '0');
+  const dateKey = `${day}/${displayMonth.toString().padStart(2, '0')}/${displayYear}`;
+  const dayField = `JOUR${i + 1}`; // Accède directement à 'JOUR1', 'JOUR2', etc.
+  let value = 0;
+  if (data && data[dayField]) { // Correction: recherche 'data.JOUR1'
+    value = Number(data[dayField]);
+  }
+  return {
+    date: dateKey,
+    valeur: value
+  };
+});
+```
+
+### Impact des modifications
+- L'histogramme dans `Chart.tsx` devrait maintenant s'afficher correctement avec les données journalières réelles (JOUR1, JOUR2, etc.).
+- La visualisation des performances des robots est rétablie.
+- L'interface utilisateur est plus fonctionnelle et affiche les informations attendues.
+
+### Fichiers modifiés
+- `components/Chart.tsx` : Modification de la logique de transformation des données pour l'histogramme.
+
+### Tests à effectuer
+1. Vérifier que l'histogramme s'affiche correctement avec les données.
+2. S'assurer que les valeurs affichées dans les barres correspondent aux données brutes des champs `JOURx`.
+3. Confirmer que la fonctionnalité générale du tableau de bord n'est pas affectée.

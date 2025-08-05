@@ -60,6 +60,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
     console.log("Chart.tsx - monthLabelPrev1:", monthLabelPrev1);
     console.log("Chart.tsx - monthLabelPrev2:", monthLabelPrev2);
     console.log("Chart.tsx - monthLabelPrev3:", monthLabelPrev3);
+    console.log("Chart.tsx - robotType:", robotType);
 
 
     const [robots, setRobots] = useState<Program[]>([]);
