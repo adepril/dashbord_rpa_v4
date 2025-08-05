@@ -388,3 +388,176 @@ const chartData = Array.from({ length: 31 }, (_, i) => {
 1. Vérifier que l'histogramme s'affiche correctement avec les données.
 2. S'assurer que les valeurs affichées dans les barres correspondent aux données brutes des champs `JOURx`.
 3. Confirmer que la fonctionnalité générale du tableau de bord n'est pas affectée.
+
+## 2025-08-05 - Tri alphabétique de la liste des agences
+
+### Problème identifié
+La liste déroulante des agences était triée par `codeAgence` au lieu de `libelleAgence`, ce qui pouvait ne pas correspondre à l'ordre alphabétique attendu par l'utilisateur.
+
+### Causes du problème
+La fonction `loadAllAgencies` dans `utils/dataStore.ts` effectuait un tri basé sur le `codeAgence` après la récupération des données.
+
+### Modifications apportées
+**Fichier :** `utils/dataStore.ts`
+
+**Fonction :** `loadAllAgencies`
+
+**Description :**
+La ligne de tri a été modifiée pour utiliser le `libelleAgence` au lieu du `codeAgence` pour l'ordonnancement alphabétique des agences. L'option "TOUT" est toujours ajoutée en première position après le tri.
+
+```typescript
+    cachedAllAgencies.sort((a, b) => (a.libelleAgence || '').localeCompare(b.libelleAgence || ''));
+    cachedAllAgencies = [tout, ...cachedAllAgencies];
+```
+
+### Impact des modifications
+- La liste déroulante des agences dans l'interface utilisateur sera désormais triée par ordre alphabétique de leur libellé, améliorant ainsi l'expérience utilisateur.
+- L'option "TOUT" reste en tête de liste.
+
+### Fichiers modifiés
+- `utils/dataStore.ts` : Modification de la logique de tri dans `loadAllAgencies`.
+
+### Tests à effectuer
+1. Vérifier que la liste déroulante des agences est bien triée alphabétiquement par libellé.
+2. S'assurer que la sélection des agences fonctionne toujours correctement après le tri.
+3. Vérifier que l'option "TOUT" est toujours la première de la liste.
+
+## Correction: Griser les agences uniquement si absentes du reporting
+
+Date: 2025-08-05
+
+Contexte:
+Dans `AgencySelector.tsx`, la désactivation des agences était basée sur l'absence de robots associés via `getRobotsByAgency`, alors que le besoin est de griser uniquement si l'agence n'apparaît pas dans les données de reporting (`cachedReportingData` sur 4 mois).
+
+Modifications:
+- Ajout de `isAgencyInReportingData(agencyCode)` dans `utils/dataStore.ts` pour vérifier la présence d'une agence dans l'une des sous-listes (`currentMonth`, `prevMonth1`, `prevMonth2`, `prevMonth3`).
+- Remplacement de la logique de désactivation dans `AgencySelector.tsx` : utilisation de `isAgencyInReportingData` au lieu de `hasRobots`.
+- L'option "TOUT" reste toujours sélectionnable.
+
+Impact:
+- Les agences présentes dans au moins une des 4 sous-listes de reporting sont maintenant sélectionnables.
+- Les agences absentes de toutes les sous-listes sont grisées.
+- Le comportement de sélection et de mise à jour des robots reste inchangé.
+
+Fichiers modifiés:
+- `utils/dataStore.ts` : ajout de la fonction utilitaire
+- `components/AgencySelector.tsx` : mise à jour de la logique de désactivation
+
+## 2025-08-05 - Correction complète du problème d'agences grisées et d'écran vide
+
+### Problème identifié
+Le composant `AgencySelector.tsx` présentait deux problèmes majeurs :
+1. **Toutes les agences étaient grisées** dans le déroulant, alors que seules les agences absentes des données de reporting devraient l'être
+2. **L'écran restait vide** après sélection d'une agence, même si celle-ci était maintenant sélectionnable
+
+### Causes du problème
+1. **Logique de désactivation incorrecte** : La désactivation des agences était basée sur l'absence de robots via `getRobotsByAgency`, alors qu'elle devrait être basée sur la présence dans les données de reporting
+2. **Données de robots non initialisées** : La variable `cachedRobots4Agencies` n'était jamais initialisée, ce qui faisait que `getRobotsByAgency()` retournait toujours un tableau vide
+
+### Modifications apportées
+
+#### 1. Création de la fonction `isAgencyInReportingData` dans `utils/dataStore.ts`
+**Lignes 417-430** :
+```typescript
+export const isAgencyInReportingData = (agencyCode: string): boolean => {
+  if (!cachedReportingData || !cachedReportingData.currentMonth) {
+    return false;
+  }
+  
+  const reportingLists = [
+    cachedReportingData.currentMonth,
+    cachedReportingData.prevMonth1 || [],
+    cachedReportingData.prevMonth2 || [],
+    cachedReportingData.prevMonth3 || []
+  ];
+  
+  return reportingLists.some(list => 
+    list.some(entry => entry.AGENCE === agencyCode)
+  );
+};
+```
+
+#### 2. Création de la fonction `initializeRobots4Agencies` dans `utils/dataStore.ts`
+**Lignes 528-572** :
+```typescript
+export const initializeRobots4Agencies = (): void => {
+  if (!cachedReportingData || !cachedReportingData.currentMonth) {
+    console.log('[dataStore] initializeRobots4Agencies - cachedReportingData non disponible');
+    return;
+  }
+  
+  const reportingLists = [
+    cachedReportingData.currentMonth,
+    cachedReportingData.prevMonth1 || [],
+    cachedReportingData.prevMonth2 || [],
+    cachedReportingData.prevMonth3 || []
+  ];
+  
+  const allReportingEntries = reportingLists.flat();
+  
+  const agencyProgramPairs = new Set<string>();
+  
+  allReportingEntries.forEach(entry => {
+    const agencyCode = entry.AGENCE;
+    const programName = entry['NOM PROGRAMME'];
+    if (agencyCode && programName) {
+      agencyProgramPairs.add(`${agencyCode}_${programName}`);
+    }
+  });
+  
+  cachedRobots4Agencies = cachedRobots.filter(robot => 
+    robot.id_robot && agencyProgramPairs.has(robot.id_robot)
+  );
+  
+  console.log(`[dataStore] initializeRobots4Agencies - ${cachedRobots4Agencies.length} robots initialisés pour les agences du reporting`);
+};
+```
+
+#### 3. Mise à jour de la logique de désactivation dans `components/AgencySelector.tsx`
+**Ligne 74** :
+```typescript
+// Avant
+disabled={!hasRobots}
+
+// Après
+disabled={!isAgencyInReportingData(agency.codeAgence)}
+```
+
+#### 4. Ajout de l'initialisation dans `components/Dashboard.tsx`
+**Lignes 25 et 210** :
+```typescript
+// Importation
+import { initializeRobots4Agencies } from '../utils/dataStore';
+
+// Appel dans le useEffect
+initializeRobots4Agencies();
+```
+
+#### 5. Mise à jour de la fonction `getRobotsByAgency` dans `utils/dataStore.ts`
+**Lignes 305-310** :
+```typescript
+export const getRobotsByAgency = (agencyId: string): Program[] => {
+  if (!agencyId || agencyId === "TOUT") {
+    return cachedRobots4Agencies;
+  }
+  return cachedRobots4Agencies.filter(robot => robot.agence === agencyId);
+};
+```
+
+### Impact des modifications
+- **Comportement correct des agences** : Seules les agences absentes des 4 sous-listes de reporting sont maintenant grisées
+- **Sélection fonctionnelle** : Les agences sélectionnables affichent maintenant correctement les données des robots correspondants
+- **Expérience utilisateur améliorée** : L'interface est plus intuitive et fonctionnelle
+- **Performance optimisée** : Les robots sont pré-filtrés pour ne contenir que ceux pertinents pour les agences du reporting
+
+### Fichiers modifiés
+- `utils/dataStore.ts` : Ajout des fonctions `isAgencyInReportingData` et `initializeRobots4Agencies`, mise à jour de `getRobotsByAgency`
+- `components/AgencySelector.tsx` : Mise à jour de la logique de désactivation des agences
+- `components/Dashboard.tsx` : Ajout de l'appel à `initializeRobots4Agencies`
+
+### Tests à effectuer
+1. Vérifier que seules les agences absentes du reporting sont grisées
+2. Vérifier que les agences présentes dans le reporting sont sélectionnables
+3. Vérifier que la sélection d'une agence affiche correctement les données des robots correspondants
+4. Vérifier que l'option "TOUT" affiche tous les robots des agences du reporting
+5. Vérifier que le comportement général du tableau de bord n'est pas affecté

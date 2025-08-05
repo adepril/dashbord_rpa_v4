@@ -110,7 +110,7 @@ export async function loadAllAgencies(): Promise<void> {
       libelleAgence: agency.LIBELLE_AGENCE
     }));
     // Trier les agences par ordre alphabétique
-    cachedAllAgencies.sort((a, b) => (a.codeAgence || '').localeCompare(b.codeAgence || ''));
+    cachedAllAgencies.sort((a, b) => (a.libelleAgence || '').localeCompare(b.libelleAgence || ''));
     cachedAllAgencies = [tout, ...cachedAllAgencies];
   } catch (error) {
     console.log('Erreur lors du chargement de toutes les agences:', error);
@@ -407,6 +407,28 @@ export function getReportingData(month: string): ReportingEntry[] {
   }
 }
 
+/**
+ * isAgencyInReportingData
+ * -------------------------------------------------------------------
+ * Vérifie si une agence apparaît dans l'une des 4 sous-listes
+ * de cachedReportingData (currentMonth, N-1, N-2, N-3).
+ * - 'TOUT' est toujours considéré comme présent.
+ */
+export function isAgencyInReportingData(agencyCode: string): boolean {
+  if (!agencyCode) return false;
+  if (agencyCode === 'TOUT') return true;
+
+  const allReportingEntries = [
+    ...cachedReportingData.currentMonth,
+    ...cachedReportingData.prevMonth1,
+    ...cachedReportingData.prevMonth2,
+    ...cachedReportingData.prevMonth3
+  ];
+
+  // NB: Les clés des colonnes peuvent être 'AGENCE' (selon la source).
+  return allReportingEntries.some((entry: ReportingEntry) => entry.AGENCE === agencyCode);
+}
+
 
 
 export async function initializeReportingData(): Promise<void> {
@@ -491,6 +513,64 @@ export async function initializeReportingData(): Promise<void> {
   }
 }
 
+/**
+ * initializeRobots4Agencies
+ * -------------------------------------------------------------------
+ * Description :
+ *  - Initialise cachedRobots4Agencies avec les robots des agences
+ *    présentes dans les données de reporting.
+ *  - Ne garde que les robots des agences qui apparaissent dans
+ *    l'une des 4 sous-listes de cachedReportingData.
+ *
+ * Entrée : Aucun
+ * Sortie : Promise<void>
+ */
+export async function initializeRobots4Agencies(): Promise<void> {
+  try {
+    // Obtenir la liste des agences présentes dans les données de reporting
+    const allReportingEntries = [
+      ...cachedReportingData.currentMonth,
+      ...cachedReportingData.prevMonth1,
+      ...cachedReportingData.prevMonth2,
+      ...cachedReportingData.prevMonth3
+    ];
+
+    // Extraire les codes d'agence uniques
+    const agencyCodes = new Set<string>();
+    allReportingEntries.forEach((entry: ReportingEntry) => {
+      if (entry.AGENCE && entry.AGENCE !== 'TOUT') {
+        agencyCodes.add(entry.AGENCE);
+      }
+    });
+
+    console.log('Agences trouvées dans les données de reporting:', Array.from(agencyCodes));
+
+    // Filtrer les robots pour ne garder que ceux des agences présentes dans le reporting
+    const filteredRobots = cachedRobots.filter(robot => {
+      // Si c'est "TOUT", on le garde
+      if (robot.agence === 'TOUT') {
+        return true;
+      }
+      
+      // Sinon, on vérifie si l'agence est dans notre liste
+      return agencyCodes.has(robot.agence);
+    });
+
+    // Mettre à jour cachedRobots4Agencies
+    cachedRobots4Agencies = [...filteredRobots];
+    
+    console.log('Robots filtrés pour les agences du reporting:', cachedRobots4Agencies.length);
+    console.log('cachedRobots4Agencies initialisé avec succès');
+    
+    // Notifier les abonnés du changement
+    notifyRobotDataListeners();
+    
+  } catch (error) {
+    console.log('Erreur lors de l\'initialisation de cachedRobots4Agencies:', error);
+    throw error;
+  }
+}
+
 // function createMergedData(doc: any, monthLabel: string): MergedData {
 //   // Implémentation à ajouter
 //   return {} as MergedData;
@@ -499,7 +579,6 @@ export async function initializeReportingData(): Promise<void> {
 interface MergedData {
   [key: string]: any;
 }
-
 
 export function getMonthLabelCurrentMonth(): string {
   return cachedReportingData.monthLabels.currentMonth;

@@ -10,7 +10,7 @@ interface AgencySelectorProps {
   onAgencyChange: (agencyId: string) => void;
 }
 
-import { getRobotsByAgency, cachedRobots, Program, updateRobots } from '../utils/dataStore';
+import { getRobotsByAgency, cachedRobots, Program, updateRobots, isAgencyInReportingData } from '../utils/dataStore';
 
 export default function AgencySelector({ agencies, selectedAgencyId, onAgencyChange }: AgencySelectorProps) {
   const handleAgencyChange = (agencyId: string) => {
@@ -32,15 +32,14 @@ export default function AgencySelector({ agencies, selectedAgencyId, onAgencyCha
         {agencies.length > 0 ? (
           agencies.map((agency) => {
             const displayText = agency.libelleAgence?.trim() || agency.codeAgence;
-            const agencyRobots = getRobotsByAgency(agency.codeAgence);
-            const hasRobots = agencyRobots.length > 1;
+            const isAgencyInReporting = isAgencyInReportingData(agency.codeAgence);
             
             return (
               <SelectItem
                 key={agency.codeAgence}
                 value={agency.codeAgence}
-                disabled={!hasRobots}
-                className={`text-sm ${!hasRobots ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                disabled={!isAgencyInReporting}
+                className={`text-sm ${!isAgencyInReporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
               >
                 {displayText}
               </SelectItem>

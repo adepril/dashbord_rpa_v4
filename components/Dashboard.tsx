@@ -22,6 +22,7 @@ import {
 
 import {
   initializeReportingData,
+  initializeRobots4Agencies, // Importation ajoutée pour initialiser les robots des agences présentes dans le reporting
   getCachedAgencies,
   getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
   loadAllServices, // Importation ajoutée
@@ -198,12 +199,16 @@ export default function Dashboard() {
           setSelectedMonth('N'); // Réinitialiser le mois sélectionné à 'N'
           console.log('(Dashboard / initializeReportingData) loadInitialData - Mois sélectionné:', selectedMonth);
 
-          // Étape 4:Charger les données de reporting pour 4 mois
+          // Étape 4: Charger les données de reporting pour 4 mois
           await initializeReportingData();
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
+
+          // Étape 5: Initialiser les robots pour les agences présentes dans le reporting
+          await initializeRobots4Agencies();
+          console.log('(Dashboard) initializeRobots4Agencies - cachedRobots4Agencies initialisé');
 
           //selectedRobotData = 'TOUT' => 'Char4All.tsx'
           setSelectedRobotData(TOUT_PROGRAM);

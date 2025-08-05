@@ -117,7 +117,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
             {data ? (
               <>
                 <div className="ml-[10%] text-left text-xl font-bold mb-4">
-                  {robotType?.toLowerCase() === 'temps' ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'} {/*data['AGENCE'] + '_' + data['NOM PROGRAMME']*/}
+                  {robotType?.toLowerCase().includes('temps') ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'} {/*data['AGENCE'] + '_' + data['NOM PROGRAMME']*/}
                 </div>
                 <div className="absolute top-2 right-2 text-black px-2 py-1 ">
                   {robotType?.toLowerCase() === "autre" && (
