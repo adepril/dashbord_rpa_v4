@@ -104,7 +104,7 @@ export async function loadAllAgencies(): Promise<void> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    const tout: Agency = { codeAgence: 'TOUT', libelleAgence: 'Toutes les agences' };
+    const tout: Agency = { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
     cachedAllAgencies = data.map((agency: any) => ({
       codeAgence: agency.CODE_AGENCE,
       libelleAgence: agency.LIBELLE_AGENCE
