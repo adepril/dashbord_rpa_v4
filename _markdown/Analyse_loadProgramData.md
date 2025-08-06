@@ -1,290 +1,139 @@
-# Analyse détaillée de la fonction loadProgramData
+# Analyse détaillée de la fonction loadProgramData — Alignée au code du 2025-08-06
 
-## 1. Objectif et fonctionnalité
+Note de version: Aligné avec l’état du code au 2025-08-06. Les références de champs et les flux reflètent le fonctionnement réel des composants et du data store.
 
-La fonction [`loadProgramData`](components/Dashboard.tsx:235) est le cœur du traitement des données dans le composant Dashboard. Elle est exécutée dans un hook [`useEffect`](components/Dashboard.tsx:234) qui se déclenche lorsque [`selectedRobotData`](components/Dashboard.tsx:429) ou [`selectedMonth`](components/Dashboard.tsx:429) changent.
+1. Objectif et fonctionnalité
 
-### Objectifs principaux :
-- Charger et traiter les données de programmes (robots) en fonction des sélections de l'utilisateur
-- Gérer deux modes d'affichage distincts : mode "TOUT" (tous les robots) et mode robot individuel
-- Préparer les données pour les composants graphiques (Chart.tsx et Chart4All.tsx)
-- Calculer les totaux mensuels pour les widgets d'information
+La fonction [`loadProgramData`](components/Dashboard.tsx:238) est au cœur du traitement des données dans le composant Dashboard. Elle est exécutée dans un hook [`useEffect`](components/Dashboard.tsx:158) et construit les jeux de données destinés aux composants graphiques selon deux modes:
+- Mode TOUT: agrégation multi-robots (par agence éventuelle) pour [`Chart4All`](components/Chart4All.tsx:60);
+- Mode Robot individuel: préparation des données d’un robot unique pour [`Chart`](components/Chart.tsx:51).
 
-### Fonctionnement global :
-1. Vérifie si un robot est sélectionné ([`selectedRobotData`](components/Dashboard.tsx:236))
-2. Détermine le mode d'affichage en fonction de la sélection ("TOUT" ou robot spécifique)
-3. Traite les données selon le mode approprié
-4. Met à jour les états du composant avec les données traitées
+Objectifs principaux:
+- Charger et préparer les données en fonction des sélections utilisateur (agence, robot, mois);
+- Calculer des totaux mensuels pour N, N-1, N-2, N-3;
+- Générer un format de données adapté à chaque composant graphique.
 
-## 2. Composants clés et leurs interactions
+2. Schéma des données et conventions — important
 
-### Mode "TOUT" (lignes 238-364)
+2.1 Clé d’identification des entrées
+Les entrées de reporting sont identifiées via une clé composite au format:
+- AGENCE + "_" + 'NOM_ROBOT'
 
-Ce mode est activé quand [`selectedRobotData.robot === "TOUT"`](components/Dashboard.tsx:238) et permet d'afficher des données agrégées pour tous les robots.
+Exemple d’usage dans le code lorsque l’on filtre des entrées:
+- `${entry.AGENCE}_${entry['NOM_ROBOT']}` est comparé à `${selectedRobotData?.agence}_${selectedRobotData?.robot}` dans le cas robot individuel
+  Voir les filtres selon le mois dans [`Dashboard.tsx`](components/Dashboard.tsx:356-395).
 
-#### Initialisation des structures de données (lignes 240-248) :
-```typescript
-const allRobotsEvolution: any[] = [];
-let oneRobotEvolution: any[] = [];
-const arrJoursDuMois: string[] = new Array(31).fill("0");
-const arrJoursDuMois_Type1: string[] = [...arrJoursDuMois];
-const arrJoursDuMois_Type2: string[] = [...arrJoursDuMois];
-let rawData: DataEntry[] = [];
+2.2 Champs utilisés
+- Total mensuel: 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS'
+- Jours du mois: 'JOUR1' à 'JOUR31'
 
-let totalUnitesMoisCourant_Type1 = 0;
-let totalUnitesMoisCourant_Type2 = 0;
-```
+Remarque:
+- Ces champs proviennent du backend SQL et sont mis à disposition dans cachedReportingData via `initializeReportingData` (voir section 4).
 
-- [`arrJoursDuMois`](components/Dashboard.tsx:242) : Tableau de 31 éléments initialisés à "0" pour stocker les données quotidiennes
-- [`arrJoursDuMois_Type1`](components/Dashboard.tsx:243) et [`arrJoursDuMois_Type2`](components/Dashboard.tsx:244) : Copies pour séparer les données par type (temps vs unités)
-- [`totalUnitesMoisCourant_Type1`](components/Dashboard.tsx:247) et [`totalUnitesMoisCourant_Type2`](components/Dashboard.tsx:248) : Accumulateurs pour les totaux mensuels par type
+2.3 Formats attendus par les composants graphiques
+- Chart.tsx (robot individuel): les valeurs journalières lues proviennent des colonnes JOURx du record choisi; l’axe X affiche des dates JJ/MM/AAAA calculées à partir de l’état (mois/année à afficher), mais la donnée source pour la valeur vient bien de JOURx. Voir la construction `chartData` dans [`Chart.tsx`](components/Chart.tsx:93).
+- Chart4All.tsx (mode TOUT): le Dashboard agrège des séries journalières sur 31 jours, puis produit un objet fusionné où les clés JJ/MM/AAAA portent les valeurs agrégées (pour l’affichage) et un champ 'NB UNITES DEPUIS DEBUT DU MOIS' totalisé. Voir la logique d’agrégation dans [`Dashboard.tsx`](components/Dashboard.tsx:256-346) puis l’utilisation dans [`Chart4All.tsx`](components/Chart4All.tsx:153-172).
 
-#### Calcul de la période d'affichage (lignes 250-281) :
-```typescript
-const currentDate = new Date();
-let displayMonth = currentDate.getMonth() + 1;
-let displayYear = currentDate.getFullYear();
+3. Fonctionnement global — étapes clés
 
-if (selectedMonth !== 'N') {
-  const monthOffset = parseInt(selectedMonth.split('-')[1]);
-  displayMonth -= monthOffset;
-  if (displayMonth < 1) {
-    displayMonth += 12;
-    displayYear -= 1;
-  }
-}
+3.1 Déclenchement
+- Le hook [`useEffect`](components/Dashboard.tsx:158) surveille `selectedRobotData`, `selectedMonth`, `robots`, `selectedAgency`. À chaque changement pertinent, `loadRobotData` reconstruit les données pour l’affichage.
 
-const currentMonth = displayMonth.toString().padStart(2, '0');
-const currentYear = displayYear;
-```
+3.2 Sélection du mode
+- Mode "TOUT" si `selectedRobotData.robot === 'TOUT'`:
+  - Agrégation multi-robots contextualisée par l’agence active (si ≠ TOUT).
+  - Calcul d’un tableau 31 jours (somme des JOURx sur l’ensemble des robots retenus).
+  - Calcul du total 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS' pour le périmètre.
+  - Construction d’un objet merged avec clés JJ/MM/AAAA et injection dans `robotDataForBarChart`, activation `useChart4All=true`. Voir [`Dashboard.tsx`](components/Dashboard.tsx:256-346).
 
-- Détermine le mois et l'année à afficher en fonction de [`selectedMonth`](components/Dashboard.tsx:257)
-- Gère les décalages de mois (N, N-1, N-2, N-3) avec ajustement de l'année si nécessaire
-- Formate le mois avec [`padStart`](components/Dashboard.tsx:279) pour garantir un format à deux chiffres
+- Mode "Robot individuel" sinon:
+  - Sélection d’une entrée unique pour le robot-agence au mois affiché (N, N-1, N-2, N-3).
+  - Construction de `processedData` en combinant l’entrée reporting avec le robot sélectionné; lecture de 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS' et des JOURx réels. Voir [`Dashboard.tsx`](components/Dashboard.tsx:349-401).
 
-#### Traitement des données par robot (lignes 283-326) :
-```typescript
-for (const robot of programs) {
-  if (robot.robot === "TOUT" || robot.robot === null) 
-    continue;
-  
-  rawData = getReportingData(selectedMonth)
-    .filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === robot.id_robot)
-    .map((entry: any) => ({
-      ...entry,
-      'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB UNITES DEPUIS DEBUT DU MOIS']),
-    }));
+3.3 Totaux mensuels
+- Mode TOUT: totaux calculés par réduction sur les datasets `getReportingData('N'|'N-1'|'N-2'|'N-3')` filtrés par l’ensemble des id_robot des robots affichés (Set pour efficacité). Voir [`Dashboard.tsx`](components/Dashboard.tsx:326-346).
+- Mode Robot individuel: totaux extraits directement des entrées correspondantes dans `cachedReportingData.currentMonth`, `prevMonth1`, `prevMonth2`, `prevMonth3`. Voir [`Dashboard.tsx`](components/Dashboard.tsx:388-401).
 
-  if (robot.agence === selectedAgency?.codeAgence || selectedAgency?.codeAgence === "TOUT") {
-    const currentProgram = programs.find(p => p.robot === robot.robot);
-    const robotType = currentProgram?.type_gain;
+4. Initialisation des données (dataStore)
 
-    for (const entry of rawData) {
-      const unitFactor = robot.type_unite !== 'temps' || robot.temps_par_unite === '0' ? 1 : Number(robot.temps_par_unite);
-      if (robotType === 'temps') {
-        totalUnitesMoisCourant_Type1 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0) * unitFactor;
-      } else { 
-        totalUnitesMoisCourant_Type2 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
-      }
-      for (let i = 1; i <= 31; i++) {
-        const dateKey = i.toString().padStart(2, '0') + '/' + currentMonth + '/' + currentYear;
-        if (entry[dateKey]) {
-          const value = entry[dateKey];
-          const idx = i - 1;
-          if (robotType === 'temps') {
-            arrJoursDuMois_Type1[idx] = `${Number(arrJoursDuMois_Type1[idx]) + Number(value)}`;
-          } else { 
-            arrJoursDuMois_Type2[idx] = `${Number(arrJoursDuMois_Type2[idx]) + Number(value)}`;
-          }
-        }
-      }
-    }
-  }
-}
-```
+4.1 initializeReportingData
+- Réalise 4 appels API distincts filtrés par `anneeMois=YYYYMM` (N, N-1, N-2, N-3);
+- Gère le cas du 1er jour du mois (bascule sur le mois précédent pour considérer la période comme close);
+- Alimente `cachedReportingData` avec:
+  - currentMonth, prevMonth1, prevMonth2, prevMonth3: tableaux d’entrées contenant 'AGENCE', 'NOM_ROBOT', 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS', 'JOUR1'..'JOUR31', 'ANNEE_MOIS', etc.;
+  - monthLabels: labels FR pour N, N-1, N-2, N-3.
 
-- Parcourt tous les programmes/robots via la boucle [`for (const robot of programs)`](components/Dashboard.tsx:283)
-- Filtre les données avec [`getReportingData(selectedMonth)`](components/Dashboard.tsx:287) pour ne garder que celles correspondant au robot courant
-- Vérifie si le robot appartient à l'agence sélectionnée ou si "TOUT" est sélectionné
-- Calcule les totaux en fonction du type de robot ([`robotType === 'temps'`](components/Dashboard.tsx:302))
-- Agrège les données quotidiennes dans les tableaux appropriés en fonction du type
+Implications:
+- Les composants consomment toujours des sous-listes "normées" avec les champs exposés ci-dessus.
+- Le mois affiché dans les graphiques respecte les labels fournis par `cachedReportingData.monthLabels`.
 
-#### Préparation des données finales (lignes 328-345) :
-```typescript
-const mergedDataType1: DataEntry = {
-  ...rawData[0],
-  'NB UNITES DEPUIS DEBUT DU MOIS': formatNumber(totalUnitesMoisCourant_Type1),
-};
+4.2 initializeRobots4Agencies
+- Construit une liste `cachedRobots4Agencies` alignée avec les agences présentes dans les données de reporting disponibles (4 mois);
+- Permet aux sélecteurs d’agences/robots d’offrir des listes cohérentes et d’éviter l’écran vide après sélection;
+- Associé à l’utilisation de `isAgencyInReportingData` pour ne pas activer des agences absentes du périmètre des données. Voir [`AgencySelector.tsx`](components/AgencySelector.tsx:35-45).
 
-for (let i = 1; i <= 31; i++) {
-  const dateKey = i.toString().padStart(2, '0') + '/' + currentMonth + '/' + currentYear;
-  mergedDataType1[dateKey] = arrJoursDuMois_Type1[i - 1];
-}
+5. Gestion des dates d’affichage
 
-setRobotData1(mergedDataType1);
-setUseChart4All(true);
-```
+5.1 Détermination du mois/année affichés côté Chart/Chart4All
+- La logique d’affichage ajuste `displayMonth` et `displayYear` en fonction de `selectedMonth` (N, N-1, …) et du cas "1er jour du mois" (afficher le mois précédent par défaut). Voir les ajustements dans:
+  - [`Chart.tsx`](components/Chart.tsx:70-91)
+  - [`Chart4All.tsx`](components/Chart4All.tsx:126-148)
 
-- Crée un objet [`mergedDataType1`](components/Dashboard.tsx:328) avec les données agrégées
-- Remplit les données quotidiennes pour chaque jour du mois
-- Met à jour l'état avec [`setRobotData1(mergedDataType1)`](components/Dashboard.tsx:343)
-- Active le mode Chart4All avec [`setUseChart4All(true)`](components/Dashboard.tsx:345)
+5.2 Mode TOUT — format d’export pour Chart4All
+- Le Dashboard convertit l’agrégation JOURx → clés JJ/MM/AAAA pour Chart4All;
+- Ceci permet un affichage direct des étiquettes datées sur l’axe X.
 
-#### Calcul des totaux pour les widgets (lignes 347-363) :
-```typescript
-const programIds = new Set(programs.map(p => p.id_robot));
-const calculateFilteredTotal = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
-  const reportingData = getReportingData(monthKey);
-  return reportingData.reduce((acc, entry) => {
-    const entryId = `${entry.AGENCE}_${entry['NOM PROGRAMME']}`;
-    if (programIds.has(entryId)) {
-      return acc + (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
-    }
-    return acc;
-  }, 0);
-};
+6. Points d’attention et bonnes pratiques
 
-setTotalCurrentMonth(calculateFilteredTotal('N'));
-setTotalPrevMonth1(calculateFilteredTotal('N-1'));
-setTotalPrevMonth2(calculateFilteredTotal('N-2'));
-setTotalPrevMonth3(calculateFilteredTotal('N-3'));
-```
+- Toujours utiliser la clé composite `${AGENCE}_${NOM_ROBOT}` lors des filtres;
+- Lire le total via 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS' (pas de variation d’intitulé);
+- Pour l’histogramme:
+  - Mode robot: lire les colonnes JOURx directement à partir de l’entrée choisie;
+  - Mode TOUT: agréger JOURx sur l’ensemble des robots retenus puis convertir en dates JJ/MM/AAAA.
+- Les labels de mois (N, N-1, N-2, N-3) proviennent du cache `cachedReportingData.monthLabels`.
+- Ne pas confondre NOM_ROBOT (utilisé par le code actuel) avec d’anciennes mentions NOM_PROGRAMME. Toute documentation antérieure citant NOM_PROGRAMME est à considérer comme obsolète.
 
-- Définit une fonction [`calculateFilteredTotal`](components/Dashboard.tsx:349) pour calculer les totaux par mois
-- Crée un Set des IDs de programmes pour un filtrage efficace
-- Utilise [`reduce`](components/Dashboard.tsx:351) pour accumuler les totaux
-- Met à jour les états des totaux mensuels pour chaque période
+7. Sections obsolètes (barrées)
 
-### Mode robot individuel (lignes 366-424)
+- ~Références à 'NOM PROGRAMME' ou 'NOM_PROGRAMME' pour la clé d’identification. Le code actuel utilise 'NOM_ROBOT' pour composer la clé avec AGENCE.~
+- ~Accès aux valeurs journalières via des clés de dates dans les données brutes. Pour le robot individuel, les colonnes JOUR1..JOUR31 sont utilisées; les dates JJ/MM/AAAA sont construites pour affichage.~
 
-Ce mode est activé quand un robot spécifique est sélectionné et permet d'afficher des données détaillées pour ce robot.
+8. Résumé visuel (flux simplifié)
 
-#### Initialisation du mode (lignes 366-370) :
-```typescript
-setUseChart4All(false);
-const tpsParUnit = selectedRobotData.temps_par_unite === '0' ? '0' : selectedRobotData.temps_par_unite;
-```
+- Mode TOUT:
+  1) Sélection agence/robots → liste filtrée (cachedRobots4Agencies);
+  2) getReportingData(N|N-1|N-2|N-3) → filtrage par clés `${AGENCE}_${NOM_ROBOT}`;
+  3) Agrégation JOURx sur 31 jours → conversion en JJ/MM/AAAA;
+  4) Totaux: somme de 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS' sur le périmètre;
+  5) Affichage dans Chart4All avec labels de mois.
 
-- Désactive le mode Chart4All avec [`setUseChart4All(false)`](components/Dashboard.tsx:369)
-- Détermine le temps par unité pour le robot sélectionné
+- Mode Robot:
+  1) Clé unique `${selectedRobotData.agence}_${selectedRobotData.robot}`;
+  2) Sélection du record selon `selectedMonth`;
+  3) Lecture de JOURx et 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS';
+  4) Totaux par mois pris directement des sous-listes;
+  5) Affichage dans Chart.
 
-#### Récupération des données par mois (lignes 372-383) :
-```typescript
-const currentMonthData = cachedReportingData.currentMonth.filter((entry: ReportingEntry) => {
-  return entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === selectedRobotData.agence + "_" + selectedRobotData.robot;
-});
-const prevMonth1Data = cachedReportingData.prevMonth1.filter((entry: ReportingEntry) => {
-  return entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === selectedRobotData.agence + "_" + selectedRobotData.robot;
-});
-const prevMonth2Data = cachedReportingData.prevMonth2.filter((entry: ReportingEntry) => {
-  return entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === selectedRobotData.agence + "_" + selectedRobotData.robot;
-});
-const prevMonth3Data = cachedReportingData.prevMonth3.filter((entry: ReportingEntry) => {
-  return entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === selectedRobotData.agence + "_" + selectedRobotData.robot;
-});
-```
+9. Références fichier/ligne (principales)
 
-- Filtre les données du robot sélectionné pour chaque mois à partir de [`cachedReportingData`](components/Dashboard.tsx:372)
-- Crée des tableaux de données pour le mois courant et les trois mois précédents
-- Utilise une clé composite "AGENCE_NOM PROGRAMME" pour identifier les entrées correspondantes
+- Dashboard — Agrégation et sélection du mode:
+  - Mode TOUT: [`Dashboard.tsx`](components/Dashboard.tsx:256-346)
+  - Mode Robot: [`Dashboard.tsx`](components/Dashboard.tsx:349-401)
 
-#### Sélection des données du mois choisi (lignes 386-399) :
-```typescript
-const robotEntry = (() => {
-  switch(selectedMonth) {
-    case 'N':
-      return currentMonthData[0];
-    case 'N-1':
-      return prevMonth1Data[0];
-    case 'N-2':
-      return prevMonth2Data[0];
-    case 'N-3':
-      return prevMonth3Data[0];
-    default:
-      return currentMonthData[0];
-  }
-})();
-```
+- Chart (robot individuel):
+  - Construction chartData via JOURx: [`Chart.tsx`](components/Chart.tsx:93)
+  - Formatage axe Y (temps): [`Chart.tsx`](components/Chart.tsx:151-156)
 
-- Utilise un switch sur [`selectedMonth`](components/Dashboard.tsx:387) pour retourner les données appropriées
-- Retourne la première entrée du tableau de données correspondant au mois sélectionné
-- Fournit une valeur par défaut (mois courant) si aucune correspondance n'est trouvée
+- Chart4All (agrégé):
+  - Construction chartData via dates JJ/MM/AAAA: [`Chart4All.tsx`](components/Chart4All.tsx:153-172)
 
-#### Préparation des données pour l'affichage (lignes 401-415) :
-```typescript
-if (robotEntry) {
-  const unitFactor = selectedRobotData.temps_par_unite === '0' ? 1 : Number(selectedRobotData.temps_par_unite);
+- AgencySelector:
+  - Désactivation basée sur `isAgencyInReportingData`: [`AgencySelector.tsx`](components/AgencySelector.tsx:35-45)
 
-  // Préparer les données pour l'histogramme
-  const processedData = {
-    ...robotEntry,
-    'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
-      ? String(Number(robotEntry['NB UNITES DEPUIS DEBUT DU MOIS']))
-      : String(robotEntry['NB UNITES DEPUIS DEBUT DU MOIS']),
-    ...selectedRobotData
-  };
-  setRobotData(processedData);
-} else {
-  setRobotData(null); // Réinitialiser robotData si aucune entrée n'est trouvée
-}
-```
+- Data store:
+  - initializeReportingData (4 appels, gestion 1er du mois) et labels: [`utils/dataStore.ts`](utils/dataStore.ts:1)
 
-- Calcule un [`unitFactor`](components/Dashboard.tsx:402) en fonction du temps par unité
-- Crée un objet [`processedData`](components/Dashboard.tsx:405) avec les données formatées
-- Combine les données de l'entrée avec les données du robot sélectionné
-- Met à jour l'état avec [`setRobotData(processedData)`](components/Dashboard.tsx:412) ou [`setRobotData(null)`](components/Dashboard.tsx:414) si aucune donnée n'est trouvée
+10. Historique documentaire
 
-#### Mise à jour des totaux mensuels (lignes 417-420) :
-```typescript
-setTotalCurrentMonth(currentMonthData[0] ? Number(currentMonthData[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-setTotalPrevMonth1(prevMonth1Data[0] ? Number(prevMonth1Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
-```
-
-- Extrait et met à jour les totaux pour chaque mois à partir des données filtrées
-- Utilise l'opérateur ternaire pour gérer les cas où les données pourraient être undefined
-- Convertit les valeurs en nombres pour les calculs ultérieurs
-
-## 3. Techniques et patterns importants
-
-### Séparation des responsabilités
-- Le code est clairement divisé en deux modes de fonctionnement distincts (TOUT vs robot individuel)
-- Chaque mode a sa propre logique de traitement des données
-- Les états sont utilisés pour contrôler l'affichage des différents composants (Chart vs Chart4All)
-
-### Gestion des états
-- Utilisation intensive des setters pour mettre à jour l'état du composant
-- Les états sont utilisés pour contrôler l'affichage des différents composants
-- Les données sont préparées spécifiquement pour chaque composant destinataire
-
-### Traitement de données
-- Utilisation de filtres et de maps pour transformer les données brutes
-- Agrégation de données provenant de plusieurs sources
-- Gestion des types de données différents (temps vs unités)
-- Utilisation de l'opérateur spread (...) pour copier et étendre des objets
-
-### Gestion des dates
-- Calcul dynamique des périodes d'affichage
-- Gestion des décalages de mois et d'année
-- Formatage des clés de date avec [`padStart`](components/Dashboard.tsx:279)
-- Création de clés de date au format "JJ/MM/AAAA" pour l'accès aux données
-
-### Optimisation
-- Utilisation de données cachées ([`cachedReportingData`](components/Dashboard.tsx:372)) pour éviter des appels inutiles
-- Calculs conditionnels en fonction du type de robot
-- Utilisation de Set pour un filtrage efficace des IDs de programmes
-- Traitement par lots des données pour minimiser les mises à jour d'état
-
-### Gestion des erreurs et cas limites
-- Vérification de l'existence des données avant traitement ([`if (robotEntry)`](components/Dashboard.tsx:401))
-- Gestion des valeurs nulles ou indéfinies avec l'opérateur || (ex: `Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0`)
-- Fourniture de valeurs par défaut pour les cas où aucune donnée n'est trouvée
-
-### Patterns de conception
-- **Pattern Strategy** : Deux stratégies distinctes pour le traitement des données selon le mode sélectionné
-- **Pattern Observer** : Le hook useEffect observe les changements de selectedRobotData et selectedMonth
-- **Pattern Data Mapper** : Transformation des données brutes en format adapté à l'affichage
-- **Pattern Cache** : Utilisation de données en cache pour optimiser les performances
-
-Cette fonction représente le cœur de la logique de traitement des données pour le tableau de bord, permettant d'afficher des statistiques et graphiques soit pour un robot spécifique, soit pour l'ensemble des robots selon la sélection de l'utilisateur.
+- Ce document remplace les anciennes mentions liées à 'NOM PROGRAMME'/'NOM_PROGRAMME' et précise l’usage des colonnes 'JOUR1'..'JOUR31' et de 'NB_UNITES_DEPUIS_DEBUT_DU_MOIS'.
+- Il est cohérent avec les modifications confirmées au 2025-08-06 dans l’application.

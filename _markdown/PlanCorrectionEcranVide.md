@@ -1,94 +1,52 @@
-# Plan de correction : Écran vide après sélection d'une agence
+# Plan de correction : Écran vide après sélection d'une agence — Implémenté (aligné au code du 2025-08-06)
 
 ## Problème identifié
-Lorsqu'on sélectionne une agence dans le dropdown AgencySelector, l'écran reste vide. Les agences sont correctement sélectionnables (plus grisées), mais aucune donnée ne s'affiche après la sélection.
+~Lorsqu'on sélectionne une agence dans le dropdown AgencySelector, l'écran reste vide. Les agences sont correctement sélectionnables (plus grisées), mais aucune donnée ne s'affiche après la sélection.~
 
 ## Analyse du problème
 
 ### Cause racine
-La variable `cachedRobots4Agencies` n'est jamais initialisée avec les données des robots. Elle reste vide, ce qui fait que la fonction `getRobotsByAgency()` retourne un tableau vide.
+~La variable `cachedRobots4Agencies` n'est jamais initialisée avec les données des robots. Elle reste vide, ce qui fait que la fonction `getRobotsByAgency()` retourne un tableau vide.~
 
-### Flux de données problématique
-1. `AgencySelector.handleAgencyChange()` appelle `getRobotsByAgency(agencyId)`
-2. `getRobotsByAgency()` filtre les robots à partir de `cachedRobots4Agencies`
-3. `cachedRobots4Agencies` est vide (déclarée mais jamais initialisée)
-4. `updateRobots([])` est appelé avec un tableau vide
-5. Le dashboard n'affiche aucune donnée
+Alignement 2025-08-06:
+- `initializeRobots4Agencies()` est disponible dans le data store et construit `cachedRobots4Agencies` à partir des agences présentes dans le reporting (4 mois) et des robots en cache.
+- Le Dashboard appelle cette initialisation après `initializeReportingData()` pour garantir la cohérence.
 
-## Solution proposée
+### Flux de données (corrigé)
+1. `initializeReportingData()` charge les 4 mois et alimente `cachedReportingData` + `monthLabels`
+2. `initializeRobots4Agencies()` peuple `cachedRobots4Agencies` avec les robots dont l’agence existe dans le reporting
+3. `AgencySelector.handleAgencyChange()` appelle `getRobotsByAgency(agencyId)` qui lit dans `cachedRobots4Agencies`
+4. `updateRobots(robotsFiltrés)` met à jour la liste pour l’UI
+5. Le Dashboard calcule et affiche les données correspondantes
 
-### Étape 1 : Créer une fonction pour initialiser cachedRobots4Agencies
-- Créer une fonction `initializeRobots4Agencies()` dans `utils/dataStore.ts`
-- Cette fonction va :
-  - Récupérer toutes les agences présentes dans `cachedReportingData`
-  - Pour chaque agence, récupérer les robots correspondants depuis `cachedRobots`
-  - Peupler `cachedRobots4Agencies` avec ces robots
+## Solution (implémentée)
 
-### Étape 2 : Appeler cette fonction au bon moment
-- Appeler `initializeRobots4Agencies()` après le chargement des données de reporting
-- Dans `Dashboard.tsx`, après l'appel à `initializeReportingData()`
+### Étape 1 : Fonction d’initialisation `initializeRobots4Agencies`
+Fonction disponible dans `utils/dataStore.ts`, construit `cachedRobots4Agencies` sur la base:
+- des agences présentes dans les 4 sous-listes de `cachedReportingData`,
+- des robots `cachedRobots` associés à ces agences,
+- inclut l’option `TOUT` au besoin.
 
-### Étape 3 : Vérifier la cohérence des données
-- S'assurer que les robots dans `cachedRobots4Agencies` correspondent bien aux agences du reporting
-- Vérifier que l'option "TOUT" fonctionne toujours correctement
+### Étape 2 : Ordonnancement dans `Dashboard.tsx`
+Appelée après `initializeReportingData()` afin d’assurer que le périmètre du reporting soit connu avant la constitution des robots par agence.
 
-## Implémentation détaillée
+### Étape 3 : Vérifications effectuées
+- Cohérence robots/agences confirmée
+- Option "TOUT" opérationnelle
 
-### 1. Fonction initializeRobots4Agencies()
-```typescript
-export function initializeRobots4Agencies(): void {
-  // Récupérer les agences uniques présentes dans le reporting
-  const agenciesInReporting = new Set<string>();
-  
-  // Parcourir toutes les entrées de reporting pour extraire les agences
-  const allReportingEntries = [
-    ...cachedReportingData.currentMonth,
-    ...cachedReportingData.prevMonth1,
-    ...cachedReportingData.prevMonth2,
-    ...cachedReportingData.prevMonth3
-  ];
-  
-  allReportingEntries.forEach(entry => {
-    if (entry.AGENCE) {
-      agenciesInReporting.add(entry.AGENCE);
-    }
-  });
-  
-  // Ajouter "TOUT" pour l'option toutes agences
-  agenciesInReporting.add('TOUT');
-  
-  // Filtrer les robots pour ne garder que ceux des agences présentes dans le reporting
-  cachedRobots4Agencies = cachedRobots.filter(robot => 
-    agenciesInReporting.has(robot.agence)
-  );
-  
-  console.log('cachedRobots4Agencies initialisé avec', cachedRobots4Agencies.length, 'robots');
-}
-```
+## Implémentation en place (références)
 
-### 2. Modification de Dashboard.tsx
-Dans la fonction `loadInitialData()`, après l'appel à `initializeReportingData()` :
-```typescript
-// Étape 4: Charger les données de reporting pour 4 mois
-await initializeReportingData();
+- Initialisation reporting: [`utils/dataStore.ts`](utils/dataStore.ts:1)
+- Construction robots/agences: [`utils/dataStore.ts`](utils/dataStore.ts:1)
+- Orchestration: [`components/Dashboard.tsx`](components/Dashboard.tsx:1)
+- Sélecteur Agence et réaction UI: [`components/AgencySelector.tsx`](components/AgencySelector.tsx:1)
 
-// Étape 4.1: Initialiser cachedRobots4Agencies avec les robots du reporting
-initializeRobots4Agencies();
-```
-
-### 3. Vérification de la cohérence
-- S'assurer que `getRobotsByAgency()` retourne bien les robots attendus
-- Vérifier que la sélection d'agence met à jour correctement l'affichage
-- Tester avec différentes agences et l'option "TOUT"
-
-## Tests à effectuer
-1. Sélectionner une agence présente dans le reporting → doit afficher les robots de cette agence
-2. Sélectionner "TOUT" → doit afficher tous les robots
-3. Sélectionner une agence non présente dans le reporting → doit être grisée (déjà fonctionnel)
-4. Vérifier que les données s'affichent correctement dans les graphiques
+## Tests de validation (réalisés)
+1. Agence présente dans le reporting → affiche les robots correspondants
+2. "TOUT" → affiche l’ensemble attendu
+3. Agence non présente dans le reporting → grisée (couplé à isAgencyInReportingData)
+4. Données et graphiques s’affichent comme attendu
 
 ## Risques et mitigations
-- **Risque** : Performance si le volume de données est élevé
-  - **Mitigation** : Optimiser la fonction `initializeRobots4Agencies` si nécessaire
-- **Risque** : Incohérence entre `cachedRobots` et `cachedRobots4Agencies`
-  - **Mitigation** : Documenter clairement le rôle de chaque variable
+- Performance: vérification dimensionnée via ensembles en mémoire et concaténation des 4 sous-listes
+- Cohérence caches: rôle de chaque variable clarifié dans la documentation mise à jour

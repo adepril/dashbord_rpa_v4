@@ -1,8 +1,8 @@
-# Analyse Détaillée du Chargement des Données dans 'loadInitialData' — Alignée au code du 2025-08-06
+# Analyse Détaillée du Chargement des Données dans 'loadInitialData'
 
 ## Introduction
 
-Ce document présente une analyse détaillée du processus de chargement des données initial dans l'application Dashboard RPA BBL. La fonction `loadInitialData` est un élément central qui orchestre le chargement de toutes les données nécessaires au fonctionnement du tableau de bord. Note d’alignement: ce document a été vérifié et ajusté pour refléter l’état réel du code au 2025-08-06 (initializeReportingData en 4 appels mensuels avec gestion du 1er du mois; initializeRobots4Agencies; usage d’isAgencyInReportingData).
+Ce document présente une analyse détaillée du processus de chargement des données initial dans l'application Dashboard RPA BBL. La fonction `loadInitialData` est un élément central qui orchestre le chargement de toutes les données nécessaires au fonctionnement du tableau de bord.
 
 ## 1. La fonction loadInitialData dans Dashboard.tsx
 
@@ -21,28 +21,21 @@ const loadInitialData = async () => {
     // Étape 2: Charger tous les robots
     await loadAllRobots();
     setPrograms(cachedRobots);
-    // Ajout aligné 2025-08-06: initialiser la liste robots/agences basée sur la présence dans le reporting
-    // pour éviter des agences actives sans données et l'écran vide après sélection.
     
     // Étape 3: Charger les services
     await loadAllServices();
     setAvailableServices(new Set(cachedServices));
     
     // Étape 4: Charger les données de reporting
-    // Aligne 2025-08-06: initializeReportingData réalise 4 appels (N, N-1, N-2, N-3)
-    // et gère le cas du 1er jour du mois (bascule YYMM d’affichage).
     await initializeReportingData();
     
     // Étape 5: Récupérer et définir les données dans l'état du composant
     const userAgencies = getCachedAllAgencies();
     setAgencies(userAgencies);
-
+    
     // Définir l'agence par défaut
     const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
     setSelectedAgency(defaultAgency);
-
-    // Aligné 2025-08-06: la disponibilité des agences côté UI est conditionnée
-    // par la présence dans cachedReportingData via isAgencyInReportingData.
     
     // Définir le service par défaut
     setSelectedService('TOUT');
@@ -113,28 +106,19 @@ const loadInitialData = async () => {
 
 **Description**: Initialise les données de reporting pour les 4 derniers mois.
 
-**Processus (aligné 2025-08-06)**:
+**Processus**:
 1. Calcule les 4 derniers mois basés sur la date actuelle
-2. Gère le cas particulier du 1er jour du mois (ajuste le mois de référence pour l’affichage et les requêtes)
-3. Effectue 4 appels API distincts pour récupérer les données de chaque mois (N, N-1, N-2, N-3)
-4. Génère les labels de mois en français et les expose via `cachedReportingData.monthLabels`
-5. Met à jour `cachedReportingData` avec:
-   - `currentMonth`, `prevMonth1`, `prevMonth2`, `prevMonth3` (tableaux) contenant au minimum les champs:
-     - `AGENCE`, `NOM_ROBOT` ~`NOM_PROGRAMME`~,
-     - `ANNEE_MOIS`,
-     - `JOUR1` à `JOUR31`,
-     - `NB UNITES DEPUIS DEBUT DU MOIS` (total mensuel)
-   - et les labels de mois FR
+2. Gère le cas particulier du 1er jour du mois
+3. Effectue 4 appels API distincts pour récupérer les données de chaque mois
+4. Génère les labels de mois en français
+5. Met à jour `cachedReportingData` avec toutes les données
 
 **Variables utilisées**:
 - `cachedReportingData`: Objet global qui stocke les données de reporting pour 4 mois
-- `monthLabels`: Labels FR pour N, N-1, N-2, N-3
 
 ### Fonctions utilitaires associées
 - `getCachedAllAgencies()`: Retourne toutes les agences en cache
 - `getReportingData(month)`: Retourne les données de reporting pour un mois spécifique
-- `initializeRobots4Agencies()`: Construit la correspondance agences → robots présents dans le reporting (4 mois)
-- `isAgencyInReportingData(codeAgence)`: Indique si une agence a des données reporting (utilisé pour désactiver des agences côté UI)
 
 ## 3. Fonctions de récupération des données dans dataFetcher.ts
 
@@ -207,17 +191,15 @@ graph TD
     B -->|loadAllAgencies| C[API /api/sql?table=AgencesV2]
     B -->|loadAllRobots| D[API /api/sql?table=Barem_Reporting]
     B -->|loadAllServices| E[API /api/sql?table=Services]
-    B -->|initializeReportingData (4 mois)| F[dataFetcher.ts]
-    F -->|fetchAllReportingData (x4)| G[API /api/sql?table=Reporting]
-    G -->|Requêtes paramétrées| H[SQL Server]
+    B -->|initializeReportingData| F[dataFetcher.ts]
+    F -->|fetchAllReportingData| G[API /api/sql?table=Reporting]
+    G -->|4 appels| H[SQL Server]
     C --> H
     D --> H
     E --> H
     H -->|Données| I[app/api/sql/route.ts]
     I -->|Réponse| B
-    B -->|Cache & monthLabels| A
-    A -->|initializeRobots4Agencies| B
-    A -->|isAgencyInReportingData| A
+    B -->|Cache| A
 ```
 
 ### Étapes détaillées du flux
@@ -266,12 +248,12 @@ graph TD
    - `CODE_AGENCE`: Code de l'agence
    - `LIBELLE_AGENCE`: Libellé de l'agence
 
-2. **Barem_Reporting**: Contient les informations sur les robots ~programmes~
+2. **Barem_Reporting**: Contient les informations sur les robots/programmes
    - `CLEF`: Clé unique
-   - `NOM_ROBOT` ~`NOM_PROGRAMME`~: Nom du robot
+   - `NOM_PROGRAMME`: Nom du programme
    - `AGENCE`: Agence associée
    - `SERVICE`: Service associé
-   - `DESCRIPTION`: Description du robot
+   - `DESCRIPTION`: Description du programme
    - `TYPE_UNITE`: Type d'unité
    - `TEMPS_PAR_UNITE`: Temps par unité
    - `TYPE_GAIN`: Type de gain
@@ -282,7 +264,7 @@ graph TD
 
 4. **Reporting**: Contient les données de reporting mensuelles
    - `CLEF`: Clé du robot
-   - `NOM_ROBOT` ~`NOM_PROGRAMME`~: Nom du robot
+   - `NOM_PROGRAMME`: Nom du programme
    - `AGENCE`: Agence
    - `ANNEE_MOIS`: Année et mois (format YYYYMM)
    - `JOUR1` à `JOUR31`: Données quotidiennes

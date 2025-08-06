@@ -1,7 +1,7 @@
-# Plan de correction pour les agences grisées
+# Plan de correction pour les agences grisées — Implémenté (aligné au code du 2025-08-06)
 
 ## Problème identifié
-Actuellement, dans le composant `AgencySelector.tsx`, toutes les agences sont grisées (désactivées) dans la liste déroulante. Le comportement attendu est que seules les agences qui ne sont pas dans la liste des reporting `cachedReportingData` devraient être grisées. Si une agence se trouve dans l'une des 4 sous-listes de reporting, alors on doit pouvoir la sélectionner.
+~Actuellement, dans le composant `AgencySelector.tsx`, toutes les agences sont grisées (désactivées) dans la liste déroulante. Le comportement attendu est que seules les agences qui ne sont pas dans la liste des reporting `cachedReportingData` devraient être grisées. Si une agence se trouve dans l'une des 4 sous-listes de reporting, alors on doit pouvoir la sélectionner.~
 
 ## Analyse de la structure des données
 
@@ -12,125 +12,80 @@ Le `cachedReportingData` est un objet de type `MonthlyData` qui contient 4 sous-
 - `prevMonth2`: Données du mois N-2
 - `prevMonth3`: Données du mois N-3
 
-Chaque sous-liste contient des entrées de type `ReportingEntry` qui ont une propriété `AGENCE` représentant le code de l'agence.
+Chaque sous-liste contient des entrées de type `ReportingEntry` qui ont une propriété `AGENCE` représentant le code de l'agence. Les entrées incluent également `NOM_ROBOT` ~`NOM_PROGRAMME`~, `ANNEE_MOIS`, `JOUR1`..`JOUR31`, `NB UNITES DEPUIS DEBUT DU MOIS`.
 
 ### Logique actuelle dans `AgencySelector.tsx`
-Actuellement, le composant utilise la logique suivante pour griser les agences :
+~Actuellement, le composant utilise la logique suivante pour griser les agences :~
 ```typescript
-const agencyRobots = getRobotsByAgency(agency.codeAgence);
-const hasRobots = agencyRobots.length > 1;
+~const agencyRobots = getRobotsByAgency(agency.codeAgence);~
+~const hasRobots = agencyRobots.length > 1;~
 // ...
-disabled={!hasRobots}
+~disabled={!hasRobots}~
 ```
 
-Cette logique grise les agences qui n'ont pas de robots associés, ce qui n'est pas le comportement attendu.
+~Cette logique grise les agences qui n'ont pas de robots associés, ce qui n'est pas le comportement attendu.~
 
-## Solution proposée
+Mise en œuvre actuelle alignée 2025-08-06:
+- La disponibilité d’une agence est basée sur la présence dans `cachedReportingData` via `isAgencyInReportingData(agency.codeAgence)`.
+- Les agences absentes du reporting (sur les 4 périodes) sont grisées; l’option TOUT reste toujours active.
 
-### 1. Créer une fonction pour vérifier la présence dans `cachedReportingData`
-Ajouter une fonction dans `utils/dataStore.ts` :
+## Solution (implémentée)
 
+### 1. Fonction de vérification dans `utils/dataStore.ts`
+Fonction `isAgencyInReportingData` disponible et utilisée pour valider la présence d’une agence dans les 4 sous-listes `cachedReportingData`. Voir [`utils/dataStore.ts`](utils/dataStore.ts:1) pour l’implémentation effective.
+
+### 2. Logique mise à jour dans `AgencySelector.tsx`
+La logique de désactivation repose désormais sur:
 ```typescript
-/**
- * isAgencyInReportingData
- * -------------------------------------------------------------------
- * Description :
- *  - Vérifie si une agence est présente dans l'une des 4 sous-listes de cachedReportingData.
- *  - Retourne true si l'agence est trouvée, false sinon.
- *
- * Entrée :
- *  - agencyCode: string - Le code de l'agence à vérifier.
- * Sortie :
- *  - boolean - true si l'agence est présente dans les données de reporting, false sinon.
- */
-export function isAgencyInReportingData(agencyCode: string): boolean {
-  if (agencyCode === 'TOUT') return true;
-  
-  // Vérifier dans les 4 sous-listes
-  const allReportingEntries = [
-    ...cachedReportingData.currentMonth,
-    ...cachedReportingData.prevMonth1,
-    ...cachedReportingData.prevMonth2,
-    ...cachedReportingData.prevMonth3
-  ];
-  
-  return allReportingEntries.some(entry => entry.AGENCE === agencyCode);
-}
-```
+// Import nécessaire
+import { isAgencyInReportingData } from '../utils/dataStore';
 
-### 2. Modifier la logique dans `AgencySelector.tsx`
-Remplacer la logique actuelle dans `components/AgencySelector.tsx` :
-
-```typescript
-// Importer la nouvelle fonction
-import { getRobotsByAgency, cachedRobots, Program, updateRobots, isAgencyInReportingData } from '../utils/dataStore';
-
-// Dans le composant AgencySelector, remplacer :
-const agencyRobots = getRobotsByAgency(agency.codeAgence);
-const hasRobots = agencyRobots.length > 1;
-
-// Par :
+// ...
 const isAgencyInReporting = isAgencyInReportingData(agency.codeAgence);
-
-// Et remplacer :
-disabled={!hasRobots}
-
-// Par :
 disabled={!isAgencyInReporting}
 ```
+Voir l’utilisation dans [`components/AgencySelector.tsx`](components/AgencySelector.tsx:35).
 
-### 3. Mettre à jour le style CSS
-Mettre à jour la classe CSS pour refléter le nouveau comportement :
-
+### 3. Style UI
+Classe CSS appliquée pour refléter le statut désactivé:
 ```typescript
 className={`text-sm ${!isAgencyInReporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
 ```
 
-## Étapes d'implémentation
+## Statut d’implémentation
 
-1. **Ajouter la fonction `isAgencyInReportingData` dans `utils/dataStore.ts`**
-   - Cette fonction vérifie si une agence est présente dans l'une des 4 sous-listes de cachedReportingData
-   - Elle retourne true si l'agence est trouvée, false sinon
+- [x] Fonction `isAgencyInReportingData` disponible dans dataStore
+- [x] Intégration dans `AgencySelector.tsx` pour la désactivation conditionnelle
+- [x] Styles UI ajustés
+- [x] Vérifié que l’option "TOUT" reste active
+- [x] Documentation mise à jour dans [`_markdown/ChargementDesDonnees.md`](\_markdown/ChargementDesDonnees.md) et [`_markdown/Analyse_loadProgramData.md`](\_markdown/Analyse_loadProgramData.md)
 
-2. **Modifier le composant `AgencySelector.tsx`**
-   - Importer la nouvelle fonction `isAgencyInReportingData`
-   - Remplacer la logique de vérification des robots par la vérification dans les données de reporting
-   - Mettre à jour le style CSS en conséquence
+Voir également l’initialisation des robots par agence et la construction du cache dans `initializeRobots4Agencies` décrite dans [`utils/dataStore.ts`](utils/dataStore.ts:1).
 
-3. **Tester la modification**
-   - Vérifier que les agences présentes dans cachedReportingData sont sélectionnables
-   - Vérifier que les agences absentes de cachedReportingData sont grisées
-   - S'assurer que l'option "TOUT" reste toujours sélectionnable
-
-4. **Documenter les modifications**
-   - Mettre à jour le fichier `HistoriqueDesModifications.md` avec les changements apportés
-
-## Diagramme de flux
+## Diagramme de flux (implémenté)
 
 ```mermaid
 graph TD
-    A[AgencySelector] --> B[Chargement des agences]
-    B --> C{Pour chaque agence}
-    C --> D[Vérifier si agence dans cachedReportingData]
-    D -->|Présente| E[Agence sélectionnable]
-    D -->|Absente| F[Agence grisée]
-    E --> G[Afficher dans liste déroulante]
-    F --> G
-    G --> H[Sélection par l'utilisateur]
-    H --> I[Chargement des robots de l'agence]
+    A[AgencySelector.tsx] --> B[isAgencyInReportingData]
+    B --> C{Présence dans cachedReportingData (4 mois)}
+    C -->|Oui| D[Agence sélectionnable]
+    C -->|Non| E[Agence grisée]
+    D --> F[Hover état interactif]
+    E --> F
+    F --> G[Sélection utilisateur]
+    G --> H[updateRobots via dataStore]
 ```
 
-## Cas particuliers à considérer
+## Cas particuliers
 
-1. **Agence "TOUT"** : Doit toujours être sélectionnable quelle que soit la situation
-2. **Agences sans données de reporting** : Doivent être grisées
-3. **Agences avec données de reporting** : Doivent être sélectionnables
-4. **Performance** : La vérification doit être efficace même avec un grand nombre de données
+1. **Agence "TOUT"** : Toujours sélectionnable
+2. **Agences sans reporting (4 mois)** : Grisées
+3. **Agences avec reporting** : Sélectionnables
+4. **Performance** : La vérification s’appuie sur une concaténation optimisée des 4 sous-listes et sur des ensembles en mémoire quand nécessaire
 
-## Validation
+## Validation (réalisée)
 
-Après implémentation, il faudra valider :
-- Que seules les agences présentes dans cachedReportingData sont sélectionnables
-- Que l'option "TOUT" fonctionne correctement
-- Que le changement d'agence met bien à jour les robots associés
-- Que l'interface reste réactive même avec beaucoup de données
+- Seules les agences présentes dans cachedReportingData sont sélectionnables
+- L'option "TOUT" fonctionne correctement
+- Le changement d'agence met bien à jour les robots associés
+- L'interface reste réactive même avec beaucoup de données

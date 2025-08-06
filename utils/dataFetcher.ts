@@ -1,11 +1,11 @@
-import { Program } from './dataStore';
+import { Robot } from './dataStore';
 
 // ------------------------------------------------------------
 // ROLE: Service de récupération des données SQL Server via API
 //
 // Ce module fournit des fonctions spécifiques pour:
 // 1. Récupérer des entités individuelles (agences, utilisateurs, citations)
-// 2. Effectuer des requêtes filtrées (par programme, statut, etc.)
+// 2. Effectuer des requêtes filtrées (par Robot, statut, etc.)
 // 3. Transformer les données brutes en structures typées
 //
 // Différences avec dataStore.ts:
@@ -14,7 +14,7 @@ import { Program } from './dataStore';
 // - Pas de callbacks UI (retourne des Promises)
 // ------------------------------------------------------------
 
-export let allRobotsByAgency: Program[] = [];
+export let allRobotsByAgency: Robot[] = [];
 
 interface UserData {
   userId: string;
@@ -88,14 +88,14 @@ export async function fetchAllEvolutions(): Promise<Evolution[]> {
 }
 
 /**
- * Fetches evolution documents for a given program name via the API.
- * @param programId The name of the program to fetch evolutions for.
+ * Fetches evolution documents for a given robot name via the API.
+ * @param robotId The name of the robot to fetch evolutions for.
  * @returns A Promise that resolves to an array of evolution documents.
  */
-export async function fetchEvolutionsByProgram(programId: string, selectedMonth: string = 'N'): Promise<Evolution[]> {
-  console.log(`fetchEvolutionsByProgram for ${programId} and month ${selectedMonth}`);
+export async function fetchEvolutionsByRobot(robotId: string, selectedMonth: string = 'N'): Promise<Evolution[]> {
+  console.log(`fetchEvolutionsByRobot for ${robotId} and month ${selectedMonth}`);
   try {
-    const response = await fetch(`/api/sql/data?table=evolutions&programId=${programId}&selectedMonth=${selectedMonth}`);
+    const response = await fetch(`/api/sql/data?table=evolutions&robotId=${robotId}&selectedMonth=${selectedMonth}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -108,7 +108,7 @@ export async function fetchEvolutionsByProgram(programId: string, selectedMonth:
       ...doc
     }));
   } catch (error) {
-    console.log('Error fetching evolutions by program:', error);
+    console.log('Error fetching evolutions by Robot:', error);
     return [];
   }
 }

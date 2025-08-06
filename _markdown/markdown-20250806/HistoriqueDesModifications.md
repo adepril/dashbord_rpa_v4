@@ -1,22 +1,5 @@
 # Historique des Modifications
 
-## 2025-08-06 - Mise à jour documentation (alignée au code du 2025-08-06)
-
-Contexte
-- Consolidation des documents Markdown pour refléter l’état réel du code: adoption de `NOM_ROBOT` ~`NOM_PROGRAMME`~, utilisation des colonnes `JOUR1`..`JOUR31`, totaux `NB UNITES DEPUIS DEBUT DU MOIS`, logique `initializeReportingData` en 4 appels (N, N-1, N-2, N-3) et règle du 1er du mois, initialisation `initializeRobots4Agencies`, et désactivation d’agences via `isAgencyInReportingData`.
-
-Fichiers documentaires mis à jour
-- [`_markdown/Analyse_loadProgramData.md`](\_markdown/Analyse_loadProgramData.md): clarification des deux modes (TOUT vs robot), clé composite `${AGENCE}_${NOM_ROBOT}`, sections obsolètes barrées.
-- [`_markdown/ChargementDesDonnees.md`](\_markdown/ChargementDesDonnees.md): ajout de la note d’alignement, 4 appels d’initialisation, `monthLabels`, mention d’`initializeRobots4Agencies` et `isAgencyInReportingData`, mise à jour du diagramme Mermaid.
-- [`_markdown/PlanCorrectionAgenciesGrisees.md`](\_markdown/PlanCorrectionAgenciesGrisees.md): marqué Implémenté, sections obsolètes barrées, ajout des références à [`components/AgencySelector.tsx`](components/AgencySelector.tsx:35) et [`utils/dataStore.ts`](utils/dataStore.ts:1).
-- [`_markdown/PlanCorrectionEcranVide.md`](\_markdown/PlanCorrectionEcranVide.md): marqué Implémenté, flux corrigé avec `initializeRobots4Agencies`.
-- [`_markdown/PlanModificationReporting.md`](\_markdown/PlanModificationReporting.md): marqué Implémenté, URL `anneeMois` correcte, 4 appels confirmés.
-- [`_markdown/PlanModificationDate.md`](\_markdown/PlanModificationDate.md): marqué Implémenté, logique du 1er du mois confirmée.
-
-Impacts
-- Documentation alignée au comportement effectif des composants [`Dashboard.tsx`](components/Dashboard.tsx:1), [`Chart.tsx`](components/Chart.tsx:1), [`Chart4All.tsx`](components/Chart4All.tsx:1), [`AgencySelector.tsx`](components/AgencySelector.tsx:1) et du data store [`utils/dataStore.ts`](utils/dataStore.ts:1).
-- Réduction des ambiguïtés (NOM_ROBOT vs ~NOM_PROGRAMME~) et clarification du format des données.
-
 ## 2025-08-02 - Correction de la fonction loadProgramData après migration Firestore vers SQL Server
 
 ### Problème identifié
@@ -35,8 +18,8 @@ La fonction `loadProgramData` dans `components/Dashboard.tsx` ne fonctionnait pl
 // Avant
 .filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM PROGRAMME'] === robot.id_robot)
 
-    // Après
-.filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM_ROBOT'] === robot.id_robot)
+// Après
+.filter((entry: ReportingEntry) => entry['AGENCE'] + "_" + entry['NOM_PROGRAMME'] === robot.id_robot)
 ```
 
 #### 2. Correction du mapping des données
@@ -46,7 +29,7 @@ La fonction `loadProgramData` dans `components/Dashboard.tsx` ne fonctionnait pl
 'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB UNITES DEPUIS DEBUT DU MOIS']),
 
 // Après
-'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB UNITES DEPUIS DEBUT DU MOIS'])
+'NB UNITES DEPUIS DEBUT DU MOIS': String(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
 ```
 
 #### 3. Correction des calculs de totaux
@@ -59,9 +42,9 @@ totalUnitesMoisCourant_Type1 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS'])
 }
 
 // Après
-totalUnitesMoisCourant_Type1 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0) * unitFactor;
-} else {
-  totalUnitesMoisCourant_Type2 += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
+totalUnitesMoisCourant_Type1 += (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0) * unitFactor;
+} else { 
+  totalUnitesMoisCourant_Type2 += (Number(entry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
 }
 ```
 
@@ -101,7 +84,7 @@ for (let i = 1; i <= 31; i++) {
 **Lignes 352-354** :
 ```typescript
 // Avant
-const entryId = `${entry.AGENCE}_${entry['NOM_ROBOT']}`;
+const entryId = `${entry.AGENCE}_${entry['NOM PROGRAMME']}`;
 if (programIds.has(entryId)) {
   return acc + (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0);
 }
@@ -121,6 +104,12 @@ setTotalCurrentMonth(currentMonthData[0] ? Number(currentMonthData[0]['NB UNITES
 setTotalPrevMonth1(prevMonth1Data[0] ? Number(prevMonth1Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
 setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
 setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB UNITES DEPUIS DEBUT DU MOIS']) : 0);
+
+// Après
+setTotalCurrentMonth(currentMonthData[0] ? Number(currentMonthData[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+setTotalPrevMonth1(prevMonth1Data[0] ? Number(prevMonth1Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+setTotalPrevMonth2(prevMonth2Data[0] ? Number(prevMonth2Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+setTotalPrevMonth3(prevMonth3Data[0] ? Number(prevMonth3Data[0]['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
 ```
 
 ### Impact des modifications
@@ -265,7 +254,7 @@ Ajout d'une ligne de tri alphabétique sur le nom du robot (`robot`) après la r
 ```typescript
     cachedRobots = data.map((robot: any) => ({
       clef: robot.CLEF,
-      robot: robot.NOM_ROBOT,
+      robot: robot.NOM_PROGRAMME,
       agence: robot.AGENCE,
       service: robot.SERVICE,
       description: robot.DESCRIPTION,
@@ -278,7 +267,7 @@ Ajout d'une ligne de tri alphabétique sur le nom du robot (`robot`) après la r
       type_gain: robot.TYPE_GAIN,
       validateur: robot.VALIDATEUR,
       valide_oui_non: robot.VALIDE_OUI_NON,
-      id_robot: `${robot.AGENCE}_${robot.NOM_ROBOT}`
+      id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
     }));
     // Trier les robots par ordre alphabétique
     cachedRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
@@ -409,7 +398,6 @@ La liste déroulante des agences était triée par `codeAgence` au lieu de `libe
 La fonction `loadAllAgencies` dans `utils/dataStore.ts` effectuait un tri basé sur le `codeAgence` après la récupération des données.
 
 ### Modifications apportées
-
 **Fichier :** `utils/dataStore.ts`
 
 **Fonction :** `loadAllAgencies`
