@@ -6,7 +6,7 @@ interface DashboardProps {
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation';
-import ProgramSelector from './ProgramSelector'
+import RobotSelector from './RobotSelector'
 import Chart from './Chart'
 import EvolutionsTable from './EvolutionsTable'
 import Chart4All from './Chart4All'
@@ -16,7 +16,6 @@ import ServiceSelector from './ServiceSelector'
 import Image from 'next/image';
 import {
   // fetchAllEvolutions,
-  // fetchEvolutionsByProgram,
   formatNumber
 } from '../utils/dataFetcher'
 
@@ -31,7 +30,7 @@ import {
   cachedRobotsFromTableBaremeReport, // Importation ajoutée
 
   Agency,
-  Program,
+  Robot,
   isDataInitialized,
   resetCache,
   isFirstLoginSession,
@@ -54,11 +53,8 @@ import {
 // ==
 interface DataEntry {
   AGENCE: string;
-  'NOM PROGRAMME': string;
+  'NOM ROBOT': string;
   'NB UNITES DEPUIS DEBUT DU MOIS': string;
-  // 'NB UNITES MOIS N-1': string;
-  // 'NB UNITES MOIS N-2': string;
-  // 'NB UNITES MOIS N-3': string;
   [key: string]: any;
 }
 
@@ -68,7 +64,7 @@ interface MergedRequestFormProps {
   formData?: {
     Intitulé: string;
     Description: string;
-    Programme: string;
+    Robotme: string;
     Nb_operations_mensuelles: string;
     Temps_consommé: string;
     Statut: string;
@@ -88,8 +84,8 @@ interface MergedRequestFormProps {
 // - L'ouverture de formulaires pour les demandes
 // ============================================================
 export default function Dashboard() {
-// Constante pour représenter l'option "TOUT" comme un objet Program valide
-  const TOUT_PROGRAM: Program = {
+// Constante pour représenter l'option "TOUT" comme un objet Robot valide
+  const TOUT_ROBOT: Robot = {
     clef: 'TOUT',
     robot: 'TOUT',
     id_robot: 'TOUT',
@@ -117,9 +113,9 @@ export default function Dashboard() {
   });
   const [selectedService, setSelectedService] = useState<string>('TOUT');
   const [availableServices, setAvailableServices] = useState<Set<string>>(new Set(cachedServices));
-  const [programs, setPrograms] = useState<Program[]>(cachedRobotsFromTableBaremeReport);
-  const [selectedRobot, setSelectedRobot] = useState<Program | null>(null);
-  const [selectedRobotData, setSelectedRobotData] = useState<Program | null>(null);
+  const [robots, setRobots] = useState<Robot[]>(cachedRobotsFromTableBaremeReport);
+  const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
+  const [selectedRobotData, setSelectedRobotData] = useState<Robot | null>(null);
   const [historiqueData, setHistoriqueData] = useState<any[]>([]);
   const [robotData, setRobotData] = useState<any>(null);
   const [robotDataForBarChart, setRobotDataForBarChart] = useState<any>(null);
@@ -185,8 +181,8 @@ export default function Dashboard() {
 
           // Étape 2: Charger tous les robots
           await loadAllRobots();
-          //console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
-          setPrograms(cachedRobotsFromTableBaremeReport);
+          console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
+          setRobots(cachedRobotsFromTableBaremeReport);
 
           //Etape 3: Charger les services de la table 'Services'
           await loadAllServices();
@@ -211,13 +207,13 @@ export default function Dashboard() {
           console.log('(Dashboard) initializeRobots4Agencies - cachedRobots4Agencies initialisé');
 
           // Enregistrer le callback pour recevoir les robots filtrés (via AgencySelector -> updateRobots)
-          setUpdateRobotsCallback((robots: Program[]) => {
+          setUpdateRobotsCallback((robots: Robot[]) => {
             // Mise à jour réactive de la liste des robots selon l'agence sélectionnée
-            setPrograms(robots);
+            setRobots(robots);
           });
 
           //selectedRobotData = 'TOUT' => 'Char4All.tsx'
-          setSelectedRobotData(TOUT_PROGRAM);
+          setSelectedRobotData(TOUT_ROBOT);
           
         } catch (error) {
           console.error('Erreur lors du chargement des données initiales:', error);
@@ -237,34 +233,34 @@ export default function Dashboard() {
 
 
   // ------------------------------------------------------------------
-  // Chargement des données pour le programme (robot) sélectionné
+  // Chargement des données pour le robot sélectionné
   // ------------------------------------------------------------------
   useEffect(() => {
-    const loadProgramData = async () => {
+    const loadRobotData = async () => {
       // Typage explicite des dépendances
       // Add a guard for selectedRobotData itself to prevent potential null access errors
       if (!selectedRobotData) {
-        console.log('[Dashboard] loadProgramData - selectedRobotData is null, skipping data loading.');
+        console.log('[Dashboard] loadRobotData - selectedRobotData is null, skipping data loading.');
         // Reset relevant states if selectedRobotData is null
         setRobotData(null);
         setRobotDataForBarChart(null);
         setUseChart4All(false);
         return; // Exit the function early
       }
-      const currentRobot: Program | null = selectedRobotData;
+      const currentRobot: Robot | null = selectedRobotData;
       const currentMonth: string = selectedMonth;
-      //console.log(`[Dashboard] loadProgramData - currentRobot:`, currentRobot, `- selectedMonth: ${currentMonth}`);
+      //console.log(`[Dashboard] loadRobotData - currentRobot:`, currentRobot, `- selectedMonth: ${currentMonth}`);
 
       if (currentRobot && currentRobot.robot) {
       if (currentRobot.robot === 'TOUT') {
         // ****** Préparation des données pour Chart4All.tsx (agrégation par agence sélectionnée) ******
         const activeAgency = selectedAgency?.codeAgence || 'TOUT';
-        console.log('[Dashboard] loadProgramData(TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency);
+        console.log('[Dashboard] loadRobotData(TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency);
 
-        // Filtrer la liste des programmes selon l'agence active
-        const programsFiltered = programs.filter(p => p.robot && p.robot !== 'TOUT' && (activeAgency === 'TOUT' ? true : p.agence === activeAgency));
-        const programIdsFiltered = new Set(programsFiltered.map(p => p.id_robot));
-        console.log('[Dashboard] loadProgramData(TOUT) - programsFiltered count:', programsFiltered.length, '- sample ids:', Array.from(programIdsFiltered).slice(0, 5));
+        // Filtrer la liste des robots selon l'agence active
+        const robotsFiltered = robots.filter(r => r.robot && r.robot !== 'TOUT' && (activeAgency === 'TOUT' ? true : r.agence === activeAgency));
+        const robotIdsFiltered = new Set(robotsFiltered.map(r => r.id_robot));
+        console.log('[Dashboard] loadRobotData(TOUT) - robotsFiltered count:', robotsFiltered.length, '- sample ids:', Array.from(robotIdsFiltered).slice(0, 5));
 
         // Préparer l'agrégation journalière
         let dailyTotals: number[] = new Array(31).fill(0);
@@ -287,10 +283,10 @@ export default function Dashboard() {
 
         // Extraire les entrées de reporting correspondant aux ids filtrés
         const reportingEntries = getReportingData(selectedMonth).filter((entry: ReportingEntry) => {
-          const entryId = `${entry.AGENCE}_${entry['NOM_PROGRAMME']}`;
-          return programIdsFiltered.has(entryId);
+          const entryId = `${entry.AGENCE}_${entry['NOM_ROBOT']}`;
+          return robotIdsFiltered.has(entryId);
         });
-        console.log('[Dashboard] loadProgramData(TOUT) - reportingEntries count:', reportingEntries.length, '- first ids:', reportingEntries.slice(0, 3).map(e => `${e.AGENCE}_${e['NOM_PROGRAMME']}`));
+        console.log('[Dashboard] loadRobotData(TOUT) - reportingEntries count:', reportingEntries.length, '- first ids:', reportingEntries.slice(0, 3).map(e => `${e.AGENCE}_${e['NOM_ROBOT']}`));
 
         // Agréger sur les 31 jours
         for (const rawEntry of reportingEntries) {
@@ -311,7 +307,7 @@ export default function Dashboard() {
         // Construire mergedData (AGENCE='TOUT' pour signaler Chart4All)
         const mergedData: DataEntry = {
           AGENCE: 'TOUT',
-          'NOM PROGRAMME': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
+          'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
           'NB UNITES DEPUIS DEBUT DU MOIS': String(totalUnitsSinceMonthStart),
           ...Object.fromEntries(
             dailyTotals.map((total, i) => {
@@ -321,7 +317,7 @@ export default function Dashboard() {
             })
           )
         };
-        console.log('[Dashboard] loadProgramData(TOUT) - mergedData:', mergedData);
+        console.log('[Dashboard] loadRobotData(TOUT) - mergedData:', mergedData);
 
         setRobotDataForBarChart(mergedData);
         setUseChart4All(true);
@@ -330,8 +326,8 @@ export default function Dashboard() {
         const calcTotalForMonth = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
           const dataset = getReportingData(monthKey);
           return dataset.reduce((acc, e) => {
-            const entryId = `${e.AGENCE}_${e['NOM_PROGRAMME']}`;
-            if (programIdsFiltered.has(entryId)) {
+            const entryId = `${e.AGENCE}_${e['NOM_ROBOT']}`;
+            if (robotIdsFiltered.has(entryId)) {
               return acc + (Number(e['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
             }
             return acc;
@@ -341,7 +337,7 @@ export default function Dashboard() {
         const tN1 = calcTotalForMonth('N-1');
         const tN2 = calcTotalForMonth('N-2');
         const tN3 = calcTotalForMonth('N-3');
-        console.log('[Dashboard] loadProgramData(TOUT) - totals N,N-1,N-2,N-3:', tN, tN1, tN2, tN3);
+        console.log('[Dashboard] loadRobotData(TOUT) - totals N,N-1,N-2,N-3:', tN, tN1, tN2, tN3);
 
         setTotalCurrentMonth(tN);
         setTotalPrevMonth1(tN1);
@@ -358,19 +354,19 @@ export default function Dashboard() {
           switch(selectedMonth) {
             case 'N':
               return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
             case 'N-1':
               return cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
             case 'N-2':
               return cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
             case 'N-3':
               return cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
             default:
               return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
           }
         })();
 
@@ -390,13 +386,13 @@ export default function Dashboard() {
         }
 
         const currentMonthData = cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
         const prevMonth1Data = cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
         const prevMonth2Data = cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
         const prevMonth3Data = cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_PROGRAMME']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
 
         setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
         setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
@@ -407,8 +403,8 @@ export default function Dashboard() {
     }
   };
 
-  loadProgramData();
-}, [selectedRobotData, selectedMonth, programs, selectedAgency]);
+  loadRobotData();
+}, [selectedRobotData, selectedMonth, robots, selectedAgency]);
 
 
   // ------------------------------------------------------------------
@@ -422,15 +418,15 @@ export default function Dashboard() {
     if (agencySelected) {
       setSelectedAgency(agencySelected);
   
-      // Mettre à jour les programmes en fonction de l'agence sélectionnée
+      // Mettre à jour les robots en fonction de l'agence sélectionnée
       // Les robots seront mis à jour via le callback setUpdateRobotsCallback appelé par AgencySelector
   
       // Au lieu de remettre à null, forcer un "TOUT" contextualisé sur l'agence
-      const TOUT_FOR_AGENCY: Program = {
-        ...TOUT_PROGRAM,
+      const TOUT_FOR_AGENCY: Robot = {
+        ...TOUT_ROBOT,
         agence: agencySelected.codeAgence
       };
-      console.log('[Dashboard] handleAgencyChange - Forcing TOUT program for agency:', TOUT_FOR_AGENCY);
+      console.log('[Dashboard] handleAgencyChange - Forcing TOUT Robot for agency:', TOUT_FOR_AGENCY);
       setSelectedRobot(TOUT_FOR_AGENCY);
       setSelectedRobotData(TOUT_FOR_AGENCY);
       // On peut aussi réinitialiser le mois sur 'N' si souhaité (optionnel)
@@ -441,20 +437,41 @@ export default function Dashboard() {
   };
 
   // ------------------------------------------------------------------
-  // Gestion du changement de robot (programme)
+  // Gestion du changement de robot
   // ------------------------------------------------------------------
-  const handleProgramChange = (robotID: string) => {
-    console.log('--- BEGIN ROBOT CHANGE - robotID:', robotID, '---');
-    const program = programs.find(p => p.id_robot === robotID);
-    if (program && selectedAgency) {
-      setSelectedRobot(program);
-      setSelectedRobotData(program);
+  const handleRobotChange = (robotID: string) => {
+    console.log('--- BEGIN ROBOT CHANGE - robotID:', robotID);
+
+    // Cas spécial: retour à "TOUT"
+    // - Si l'utilisateur choisit l'option "TOUT" dans le sélecteur robot,
+    //   on construit un Robot synthétique contextualisé à l'agence sélectionnée.
+    // - L'id_robot attendu pour cohérence interne suit le format "<CODE_AGENCE>_TOUT".
+    if (robotID === 'TOUT' || robotID.endsWith('_TOUT')) {
+      const activeAgencyCode = selectedAgency?.codeAgence || 'TOUT';
+      const TOUT_FOR_AGENCY: Robot = {
+        ...TOUT_ROBOT,
+        agence: activeAgencyCode,
+        id_robot: `${activeAgencyCode}_TOUT`,
+      };
+      console.log('[Dashboard] handleRobotChange - Switching to TOUT for agency:', TOUT_FOR_AGENCY);
+      setSelectedRobot(TOUT_FOR_AGENCY);
+      setSelectedRobotData(TOUT_FOR_AGENCY);
+      console.log('--- END ROBOT CHANGE (TOUT) ---');
+      return;
+    }
+
+    const robot = robots.find(r => r.id_robot === robotID);
+    console.log('Robot sélectionné:', robot);
+    console.log('Agence sélectionnée:', selectedAgency);
+    if (robot && selectedAgency) {
+      setSelectedRobot(robot);
+      setSelectedRobotData(robot);
     } else {
-      console.log('_Programme ou agence non trouvé');
+      console.log('_Robot ou agence non trouvé');
       //setSelectedRobot(null);
       //setSelectedRobotData(null);
     }
-    console.log('--- END ROBOT CHANGE - ', robotID, '---');
+    console.log('--- END ROBOT CHANGE - ', robotID);
   };
 
   const handleOpenForm = () => {
@@ -469,7 +486,7 @@ export default function Dashboard() {
     return <div className="text-red-500">{error}</div>;
   }
 
-  const updateService = (filteredRobots: Program[]) => {
+  const updateService = (filteredRobots: Robot[]) => {
     const services = new Set<string>();
     services.add("TOUT");
 
@@ -556,10 +573,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <span>Robot:</span>
-                  <ProgramSelector
-                    robots={programs}
-                    selectedProgramId={selectedRobot?.id_robot || ''}
-                    onProgramChange={handleProgramChange}
+                  <RobotSelector
+                    robots={robots}
+                    selectedRobotId={selectedRobot?.id_robot || ''}
+                    onRobotChange={handleRobotChange}
                   />
                   <div className="w-[80px]"></div>
                   <div className="flex justify-end">

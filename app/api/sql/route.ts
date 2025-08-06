@@ -139,12 +139,12 @@ export async function POST(request: NextRequest) {
                 // Insertion dans la table Reporting
                 query = `
                     INSERT INTO [BD_RPA_TEST].[dbo].[Reporting] (
-                        [CLEF], [NOM_PROGRAMME], [AGENCE], [DESCRIPTION], [DATE_MAJ], [TYPE_UNITE], [ANNEE_MOIS],
+                        [CLEF], [NOM_ROBOT], [AGENCE], [DESCRIPTION], [DATE_MAJ], [TYPE_UNITE], [ANNEE_MOIS],
                         [JOUR1], [JOUR2], [JOUR3], [JOUR4], [JOUR5], [JOUR6], [JOUR7], [JOUR8], [JOUR9], [JOUR10],
                         [JOUR11], [JOUR12], [JOUR13], [JOUR14], [JOUR15], [JOUR16], [JOUR17], [JOUR18], [JOUR19], [JOUR20],
                         [JOUR21], [JOUR22], [JOUR23], [JOUR24], [JOUR25], [JOUR26], [JOUR27], [JOUR28], [JOUR29], [JOUR30], [JOUR31]
                     ) VALUES (
-                        @CLEF, @NOM_PROGRAMME, @AGENCE, @DESCRIPTION, @DATE_MAJ, @TYPE_UNITE, @ANNEE_MOIS,
+                        @CLEF, @NOM_ROBOT, @AGENCE, @DESCRIPTION, @DATE_MAJ, @TYPE_UNITE, @ANNEE_MOIS,
                         @JOUR1, @JOUR2, @JOUR3, @JOUR4, @JOUR5, @JOUR6, @JOUR7, @JOUR8, @JOUR9, @JOUR10,
                         @JOUR11, @JOUR12, @JOUR13, @JOUR14, @JOUR15, @JOUR16, @JOUR17, @JOUR18, @JOUR19, @JOUR20,
                         @JOUR21, @JOUR22, @JOUR23, @JOUR24, @JOUR25, @JOUR26, @JOUR27, @JOUR28, @JOUR29, @JOUR30, @JOUR31
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
                 `;
                 // Map data fields to SQL parameters
                 params.push({ name: 'CLEF', type: sql.NVarChar(150), value: data.CLEF });
-                params.push({ name: 'NOM_PROGRAMME', type: sql.NVarChar(100), value: data.NOM_PROGRAMME });
+                params.push({ name: 'NOM_ROBOT', type: sql.NVarChar(100), value: data.NOM_ROBOT });
                 params.push({ name: 'AGENCE', type: sql.NVarChar(50), value: data.AGENCE });
                 params.push({ name: 'DESCRIPTION', type: sql.NVarChar(sql.MAX), value: data.DESCRIPTION });
                 params.push({ name: 'DATE_MAJ', type: sql.Date, value: data.DATE_MAJ });

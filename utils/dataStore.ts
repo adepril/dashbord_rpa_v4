@@ -10,7 +10,7 @@
 //
 // Interfaces clés:
 // - Agency: Structure des données d'agence (id, nom, libellé)
-// - Program: Structure complète des robots RPA (nom, agence, métadonnées)
+// - Robot: Structure complète des robots RPA (nom, agence, métadonnées)
 //
 // Variables globales:
 // - cachedAgencies: Cache des agences accessibles à l'utilisateur
@@ -39,12 +39,12 @@ export interface Agency {
 }
 
 /**
- * Interface pour représentant un robot ou programme RPA.
+ * Interface pour représentant un robot RPA.
  * Contient des informations telles que le nom, l'identifiant, 
  * l'agence associée, les informations de reporting et d'autres 
  * métadata sur le robot.
  */
-export interface Program {
+export interface Robot {
   clef: string;
   robot: string;
   id_robot: string;
@@ -82,8 +82,8 @@ export interface Program {
 let cachedAgencies: Agency[] = [];
 export let cachedAllAgencies: Agency[] = [];
 // Remove duplicate declaration since it's already declared above
-export let cachedRobots4Agencies: Program[] = [];
-export let cachedRobotsFromTableBaremeReport: Program[] = [];
+export let cachedRobots4Agencies: Robot[] = [];
+export let cachedRobotsFromTableBaremeReport: Robot[] = [];
 export let cachedServices: string[] = [];
 
 /**
@@ -164,7 +164,7 @@ export async function loadAllRobots(): Promise<void> {
     const data = await response.json();
     cachedRobotsFromTableBaremeReport = data.map((robot: any) => ({
       clef: robot.CLEF,
-      robot: robot.NOM_PROGRAMME,
+      robot: robot.NOM_ROBOT,
       agence: robot.AGENCE,
       service: robot.SERVICE,
       description: robot.DESCRIPTION,
@@ -177,28 +177,18 @@ export async function loadAllRobots(): Promise<void> {
       type_gain: robot.TYPE_GAIN,
       validateur: robot.VALIDATEUR,
       valide_oui_non: robot.VALIDE_OUI_NON,
-      id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
+      id_robot: `${robot.AGENCE}_${robot.NOM_ROBOT}`
     }));
     // Trier les robots par ordre alphabétique
+    // Trier les robots par ordre alphabétique
     cachedRobotsFromTableBaremeReport.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
-    // Ajouter "TOUT" au début de la liste
-    cachedRobotsFromTableBaremeReport.unshift({
-      clef: "TOUT",
-      robot: "TOUT",
-      id_robot: "TOUT",
-      agence: "TOUT",
-      service: "TOUT",
-      description: "Tous les robots",
-      probleme: "",
-      description_long: "",
-      resultat: "",
-      date_maj: "",
-      type_unite: "unité",
-      temps_par_unite: "0",
-      type_gain: "unité",
-      validateur: "",
-      valide_oui_non: ""
-    });
+
+    // Sécurité: s'assurer qu'aucune entrée "TOUT" n'est présente dans les données brutes.
+    // L'option "TOUT" est désormais gérée côté UI (RobotSelector).
+    cachedRobotsFromTableBaremeReport = cachedRobotsFromTableBaremeReport.filter(
+      (r) => (r.robot ?? '').toUpperCase() !== 'TOUT' && (r.id_robot ?? '').toUpperCase() !== 'TOUT'
+    );
+
     console.log('Robots chargés en cache:', cachedRobotsFromTableBaremeReport);
   } catch (error) {
     console.log('Erreur lors du chargement des robots:', error);
@@ -212,7 +202,7 @@ export async function loadAllRobots(): Promise<void> {
 // Ce callback permet au composant parent d'être informé dès que 
 // la liste des robots est mise à jour dans le cache.
 // ------------------------------------------------------------
-let updateRobotsCallback: ((robots: Program[]) => void) | null = null;
+let updateRobotsCallback: ((robots: Robot[]) => void) | null = null;
 
 /**
  * updateRobots
@@ -220,11 +210,11 @@ let updateRobotsCallback: ((robots: Program[]) => void) | null = null;
  * Met à jour les robots dans le composant parent via le callback
  * configuré dans updateRobotsCallback. 
  * Entrée:
- *  - robots: Tableau de Program à envoyer.
+ *  - robots: Tableau de Robot à envoyer.
  * Sortie:
  *  - Aucun retour, mais déclenche une mise à jour dans le composant parent.
  */
-export function updateRobots(robots: Program[]): void {
+export function updateRobots(robots: Robot[]): void {
   if (updateRobotsCallback) {
     updateRobotsCallback(robots);
   }
@@ -236,9 +226,9 @@ export function updateRobots(robots: Program[]): void {
  * Définit le callback qui sera utilisé pour notifier la mise à jour
  * de la liste des robots.
  * Entrée:
- *  - callback: Fonction qui prend un tableau de Program.
+ *  - callback: Fonction qui prend un tableau de Robot.
  */
-export function setUpdateRobotsCallback(callback: (robots: Program[]) => void): void {
+export function setUpdateRobotsCallback(callback: (robots: Robot[]) => void): void {
   updateRobotsCallback = callback;
 }
 
@@ -300,9 +290,9 @@ export function getCachedAgencies(): Agency[] {
  * Entrée :
  *  - agencyId: string - L'identifiant de l'agence.
  * Sortie :
- *  - Program[] - Liste des robots filtrés.
+ *  - Robot[] - Liste des robots filtrés.
  */
-export function getRobotsByAgency(agencyCode: string): Program[] {
+export function getRobotsByAgency(agencyCode: string): Robot[] {
   if (agencyCode === 'TOUT') {
     return cachedRobots4Agencies;
   }
@@ -348,7 +338,7 @@ export function resetCache(): void {
 // ------------------------------------------------------------
 export interface ReportingEntry {
   AGENCE: string;
-  'NOM PROGRAMME': string;
+  'NOM ROBOT': string;
   'NB UNITES DEPUIS DEBUT DU MOIS': string;
   [key: string]: any;
   monthLabel?: string;
@@ -390,7 +380,7 @@ export let totalPrevMonth3: number = 0;
 export function getReportingDataForRobot(robotId: string, month: string): ReportingEntry | undefined {
   const data = getReportingData(month);
   return data.find((entry: ReportingEntry) =>
-    entry['AGENCE'] + '_' + entry['NOM_PROGRAMME'] === robotId
+    entry['AGENCE'] + '_' + entry['NOM_ROBOT'] === robotId
   );
 }
 

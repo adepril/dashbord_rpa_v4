@@ -3,7 +3,7 @@
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts"
 import React, { useState, useEffect } from 'react';
 import { formatDuration } from '../lib/utils'
-import { Program, cachedRobots4Agencies } from '../utils/dataStore';
+import { Robot, cachedRobots4Agencies } from '../utils/dataStore';
 
 interface ChartProps {
   robotType: string
@@ -50,20 +50,20 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 
 export default function Chart({ robotType, data, selectedAgency, setSelectedMonth,selectedMonth , totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
-    console.log("Chart.tsx - data:", data);
-    console.log("Chart.tsx - selectedmonth:", selectedMonth);
-    console.log("Chart.tsx - totalCurrentMonth:", totalCurrentMonth);
-    console.log("Chart.tsx - totalPrevMonth1:", totalPrevMonth1);
-    console.log("Chart.tsx - totalPrevMonth2:", totalPrevMonth2);
-    console.log("Chart.tsx - totalPrevMonth3:", totalPrevMonth3);
-    console.log("Chart.tsx - monthLabelCurrent:", monthLabelCurrent);
-    console.log("Chart.tsx - monthLabelPrev1:", monthLabelPrev1);
-    console.log("Chart.tsx - monthLabelPrev2:", monthLabelPrev2);
-    console.log("Chart.tsx - monthLabelPrev3:", monthLabelPrev3);
-    console.log("Chart.tsx - robotType:", robotType);
+    // console.log("Chart.tsx - data:", data);
+    // console.log("Chart.tsx - selectedmonth:", selectedMonth);
+    // console.log("Chart.tsx - totalCurrentMonth:", totalCurrentMonth);
+    // console.log("Chart.tsx - totalPrevMonth1:", totalPrevMonth1);
+    // console.log("Chart.tsx - totalPrevMonth2:", totalPrevMonth2);
+    // console.log("Chart.tsx - totalPrevMonth3:", totalPrevMonth3);
+    // console.log("Chart.tsx - monthLabelCurrent:", monthLabelCurrent);
+    // console.log("Chart.tsx - monthLabelPrev1:", monthLabelPrev1);
+    // console.log("Chart.tsx - monthLabelPrev2:", monthLabelPrev2);
+    // console.log("Chart.tsx - monthLabelPrev3:", monthLabelPrev3);
+    // console.log("Chart.tsx - robotType:", robotType);
 
 
-    const [robots, setRobots] = useState<Program[]>([]);
+    const [robots, setRobots] = useState<Robot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -117,7 +117,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
             {data ? (
               <>
                 <div className="ml-[10%] text-left text-xl font-bold mb-4">
-                  {robotType?.toLowerCase().includes('temps') ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'} {/*data['AGENCE'] + '_' + data['NOM PROGRAMME']*/}
+                  {robotType?.toLowerCase().includes('temps') ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'} 
                 </div>
                 <div className="absolute top-2 right-2 text-black px-2 py-1 ">
                   {robotType?.toLowerCase() === "autre" && (

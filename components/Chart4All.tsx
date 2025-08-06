@@ -8,8 +8,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 // Fonction utilitaire permettant de formater des valeurs de temps/durée
 import { formatDuration } from '../lib/utils'
-// Importation des types et des données mises en cache concernant les robots (programmes)
-import { Program, cachedRobots4Agencies, subscribeToRobotData, unsubscribeFromRobotData } from '../utils/dataStore';
+// Importation des types et des données mises en cache concernant les robots 
+import { Robot, cachedRobots4Agencies, subscribeToRobotData, unsubscribeFromRobotData } from '../utils/dataStore';
 
 // Définition des propriétés que ce composant attend
 interface ChartProps {
@@ -59,14 +59,14 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
-  console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
+  //console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
 
   // États locaux du composant :
 // robots : tableau de robots filtrés pour l'affichage dans la section "Le saviez-vous ?"
 // currentIndex : index du robot actuellement affiché dans le diaporama
 // isPaused : booléen indiquant si le défilement automatique des robots est en pause
 // error : message d'erreur éventuel pour l'affichage
-  const [robots, setRobots] = useState<Program[]>([]);
+  const [robots, setRobots] = useState<Robot[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   if (!data1 || !data1['NB UNITES DEPUIS DEBUT DU MOIS']) {
     return (
       <div className="flex justify-center items-center h-[400px] text-gray-500">
-        Aucune donnée de reporting disponible pour ce programme
+        Aucune donnée de reporting disponible pour ce robot
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   if (chartData.every(item => item.valeur === 0)) {
     return (
       <div className="flex justify-center items-center h-[400px] text-gray-500">
-        L'histogramme ne peut être généré car aucune donnée disponible pour ce programme
+        L'histogramme ne peut être généré car aucune donnée disponible pour ce robot
       </div>
     );
   }

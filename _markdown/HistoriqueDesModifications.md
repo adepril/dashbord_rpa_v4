@@ -631,3 +631,91 @@ Tests manuels
 Notes
 - Aucun changement apporté à `ProgramSelector.tsx`.
 - Respect des règles: backup intact, explications consignées dans ce fichier.
+
+## 2025-08-06 — Correction affichage des noms dans la liste déroulante "Robot"
+
+- Problème
+  - La liste déroulante "Robot" affichait l’attribut d’unité/temps (ex: "unité", "TEMPS (mn)") au lieu du nom du robot.
+  - Contexte: renommage de colonnes SQL incluant `NOM_ROBOT` et `NOM_PROGRAMME`. Le frontend affichait `TYPE_GAIN` par erreur.
+
+- Analyse
+  - Le mapping des données robots dans [`utils/dataStore.ts`](utils/dataStore.ts:165-181) renseigne correctement:
+    - `robot.robot` ⇐ `NOM_ROBOT`
+    - `robot.type_gain` ⇐ `TYPE_GAIN`
+  - Le composant d’UI [`components/RobotSelector.tsx`](components/RobotSelector.tsx) utilisait l’attribut erroné pour l’affichage via la fonction [`verboseName(robot)`](components/RobotSelector.tsx:13): `type_gain` au lieu de `robot`.
+
+- Modifications effectuées
+  - Dans [`components/RobotSelector.tsx`](components/RobotSelector.tsx:13), remplacer l’usage de `robot.type_gain` par `robot.robot`:
+    - Avant:
+      - `return robot.type_gain === "TOUT" ? "TOUT" : \`\${robot.type_gain}\`;`
+    - Après:
+      - `return robot.robot === "TOUT" ? "TOUT" : \`\${robot.robot}\`;`
+  - Conserver la valeur de l’item `value={robot.id_robot}` pour ne pas impacter la logique métier (clé format "AGENCE_NOM_ROBOT").
+  - Aucun changement nécessaire côté API [`app/api/sql/route.ts`](app/api/sql/route.ts:100-103): la requête `SELECT * FROM Barem_Reporting` reste valide.
+
+- Impact
+  - Le Select "Robot" affiche désormais le nom du robot (`NOM_ROBOT`) au lieu du type de gain.
+  - Pas d’impact sur la clé de sélection, ni sur les dépendances (graphiques/filtrages).
+
+- Tests recommandés
+  - Recharger `/dashboard` puis ouvrir la liste "Robot" et valider les libellés.
+  - Sélectionner plusieurs robots et vérifier la mise à jour des graphes.
+  - Vérifier le cas "TOUT" présent en tête de liste.
+
+- Référence des fichiers modifiés
+  - [`components/RobotSelector.tsx`](components/RobotSelector.tsx:13)
+
+## 2025-08-06 - Ajout de l’option "TOUT" au sélecteur de robots
+
+Contexte
+- Objectif: Lors de la sélection d’une nouvelle agence, la liste des robots doit inclure "TOUT" en tête afin d’afficher l’histogramme agrégé via Chart4All.tsx.
+- Fichiers concernés: [`RobotSelector.tsx`](components/RobotSelector.tsx), [`Dashboard.tsx`](components/Dashboard.tsx), [`Chart4All.tsx`](components/Chart4All.tsx), [`Chart.tsx`](components/Chart.tsx).
+
+Modifications réalisées
+- Préfixage de la liste des robots par une entrée synthétique "TOUT" dans [`RobotSelector.tsx`](components/RobotSelector.tsx):
+  - Création d’un élément avec id_robot="TOUT" et robot="TOUT".
+  - Insertion en tête du tableau affiché par le composant Select.
+- Aucune modification nécessaire dans [`Dashboard.tsx`](components/Dashboard.tsx) puisque la logique existante gère déjà:
+  - La détection de robot === "TOUT" pour préparer des données agrégées et afficher [`Chart4All.tsx`](components/Chart4All.tsx).
+  - La sélection d’un robot spécifique pour afficher [`Chart.tsx`](components/Chart.tsx).
+  - La mise au point lors du changement d’agence en forçant un Robot "TOUT" contextualisé (voir initialisation et `handleAgencyChange`).
+
+Impact sur le code
+- UX: L’option "TOUT" est toujours visible en premier dans la liste déroulante des robots.
+- Interopérabilité: `selectedRobotId` peut désormais explicitement être "TOUT". La logique de [`Dashboard.tsx`](components/Dashboard.tsx) le supporte déjà (bascules graphiques intactes).
+- Performance/Comportement: inchangé, seules les données affichées dépendent de la sélection.
+
+Extrait de code pertinent
+- Insertion "TOUT" au-dessus de la liste:
+  - Dans [`RobotSelector.tsx`](components/RobotSelector.tsx:20-39), la constante `robotsList` est désormais construite en préfixant l’élément "TOUT".
+
+Tests manuels effectués
+- Changement d’agence: la liste des robots se met à jour et "TOUT" apparaît en tête.
+- Sélection "TOUT": affichage de l’histogramme agrégé via [`Chart4All.tsx`](components/Chart4All.tsx).
+- Sélection d’un robot spécifique: affichage de l’histogramme détaillé via [`Chart.tsx`](components/Chart.tsx).
+
+## 2025-08-06 — Correction duplication "TOUT" dans la liste des robots
+
+Contexte:
+- Un doublon de l'option "TOUT" apparaissait dans le sélecteur des robots lorsque l’agence sélectionnée était “Toutes les agences”.
+- Des warnings React étaient visibles: "Encountered two children with the same key, 'TOUT'." (clés non uniques).
+
+Décision d’architecture:
+- Centraliser la gestion de l’option "TOUT" au niveau UI (composant de sélection) et la supprimer au niveau des données pour éviter toute entrée synthétique dans le cache global.
+
+Modifications:
+- Suppression de l’injection de "TOUT" côté données dans [`utils/dataStore.ts`](utils/dataStore.ts:182-201). Le bloc `unshift({... "TOUT" ...})` a été retiré.
+- Ajout d’un filtre de sécurité pour éliminer toute occurrence "TOUT" potentiellement ramenée par la source de données.
+- Conservation de l’insertion de "TOUT" uniquement côté UI dans [`components/RobotSelector.tsx`](components/RobotSelector.tsx:22-25).
+
+Impact:
+- La liste déroulante ne présente plus de double "TOUT".
+- Disparition des warnings de clés dupliquées.
+- Les autres consommateurs de données reçoivent la liste brute des robots sans entrée artificielle, réduisant le risque d’effets de bord.
+
+Tests manuels effectués:
+- Ouverture du dashboard avec “Toutes les agences” puis avec une agence spécifique: une seule entrée "TOUT" visible dans chaque cas.
+- Comportement de filtrage inchangé.
+
+Notes:
+- Cette centralisation simplifie la responsabilité: les données restent “brutes” dans le store, l’UI enrichit l’affichage selon le besoin.
