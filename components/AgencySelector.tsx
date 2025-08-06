@@ -10,7 +10,7 @@ interface AgencySelectorProps {
   onAgencyChange: (agencyId: string) => void;
 }
 
-import { getRobotsByAgency, cachedRobots, Program, updateRobots, isAgencyInReportingData } from '../utils/dataStore';
+import { getRobotsByAgency, cachedRobotsFromTableBaremeReport, Program, updateRobots, isAgencyInReportingData } from '../utils/dataStore';
 
 export default function AgencySelector({ agencies, selectedAgencyId, onAgencyChange }: AgencySelectorProps) {
   const handleAgencyChange = (agencyId: string) => {

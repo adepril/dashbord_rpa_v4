@@ -14,7 +14,7 @@
 //
 // Variables globales:
 // - cachedAgencies: Cache des agences accessibles à l'utilisateur
-// - cachedRobots: Robots filtrés pour l'utilisateur courant
+// - cachedRobotsFromTableBaremeReport: Robots filtrés pour l'utilisateur courant
 // - cachedReportingData: Données de reporting calculées
 // ------------------------------------------------------------
 
@@ -77,13 +77,13 @@ export interface Program {
 //   des appels multiples à Firestore pour ces données.
 // - cachedAllRobots: stocke l'intégralité des robots récupérés depuis la collection 
 //   "robots_et_baremes".
-// - cachedRobots: stocke les robots filtrés pour les agences en cache.
+// - cachedRobotsFromTableBaremeReport: stocke les robots filtrés pour les agences en cache.
 // ------------------------------------------------------------
 let cachedAgencies: Agency[] = [];
 export let cachedAllAgencies: Agency[] = [];
 // Remove duplicate declaration since it's already declared above
 export let cachedRobots4Agencies: Program[] = [];
-export let cachedRobots: Program[] = [];
+export let cachedRobotsFromTableBaremeReport: Program[] = [];
 export let cachedServices: string[] = [];
 
 /**
@@ -162,7 +162,7 @@ export async function loadAllRobots(): Promise<void> {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    cachedRobots = data.map((robot: any) => ({
+    cachedRobotsFromTableBaremeReport = data.map((robot: any) => ({
       clef: robot.CLEF,
       robot: robot.NOM_PROGRAMME,
       agence: robot.AGENCE,
@@ -180,9 +180,9 @@ export async function loadAllRobots(): Promise<void> {
       id_robot: `${robot.AGENCE}_${robot.NOM_PROGRAMME}`
     }));
     // Trier les robots par ordre alphabétique
-    cachedRobots.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
+    cachedRobotsFromTableBaremeReport.sort((a, b) => (a.robot || '').localeCompare(b.robot || ''));
     // Ajouter "TOUT" au début de la liste
-    cachedRobots.unshift({
+    cachedRobotsFromTableBaremeReport.unshift({
       clef: "TOUT",
       robot: "TOUT",
       id_robot: "TOUT",
@@ -199,7 +199,7 @@ export async function loadAllRobots(): Promise<void> {
       validateur: "",
       valide_oui_non: ""
     });
-    console.log('Robots chargés en cache:', cachedRobots);
+    console.log('Robots chargés en cache:', cachedRobotsFromTableBaremeReport);
   } catch (error) {
     console.log('Erreur lors du chargement des robots:', error);
     throw error;
@@ -302,11 +302,11 @@ export function getCachedAgencies(): Agency[] {
  * Sortie :
  *  - Program[] - Liste des robots filtrés.
  */
-export function getRobotsByAgency(agencyId: string): Program[] {
-  if (agencyId === 'TOUT') {
+export function getRobotsByAgency(agencyCode: string): Program[] {
+  if (agencyCode === 'TOUT') {
     return cachedRobots4Agencies;
   }
-  return cachedRobots4Agencies.filter(robot => robot.agence === agencyId);
+  return cachedRobots4Agencies.filter(robot => robot.agence === agencyCode);
 }
 
 
@@ -338,7 +338,7 @@ export function resetCache(): void {
   cachedAgencies = [];
   cachedAllAgencies = [];
   cachedRobots4Agencies = [];
-  cachedRobots = [];
+  cachedRobotsFromTableBaremeReport = [];
   cachedServices = [];
   isInitialized = false;
 }
@@ -546,7 +546,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
     console.log('Agences trouvées dans les données de reporting:', Array.from(agencyCodes));
 
     // Filtrer les robots pour ne garder que ceux des agences présentes dans le reporting
-    const filteredRobots = cachedRobots.filter(robot => {
+    const filteredRobots = cachedRobotsFromTableBaremeReport.filter(robot => {
       // Si c'est "TOUT", on le garde
       if (robot.agence === 'TOUT') {
         return true;
