@@ -210,6 +210,12 @@ export default function Dashboard() {
           await initializeRobots4Agencies();
           console.log('(Dashboard) initializeRobots4Agencies - cachedRobots4Agencies initialisé');
 
+          // Enregistrer le callback pour recevoir les robots filtrés (via AgencySelector -> updateRobots)
+          setUpdateRobotsCallback((robots: Program[]) => {
+            // Mise à jour réactive de la liste des robots selon l'agence sélectionnée
+            setPrograms(robots);
+          });
+
           //selectedRobotData = 'TOUT' => 'Char4All.tsx'
           setSelectedRobotData(TOUT_PROGRAM);
           
@@ -417,8 +423,7 @@ export default function Dashboard() {
       setSelectedAgency(agencySelected);
   
       // Mettre à jour les programmes en fonction de l'agence sélectionnée
-      // Les robots sont déjà mis à jour dans le cache par AgencySelector
-      setPrograms(cachedRobotsFromTableBaremeReport);
+      // Les robots seront mis à jour via le callback setUpdateRobotsCallback appelé par AgencySelector
   
       // Au lieu de remettre à null, forcer un "TOUT" contextualisé sur l'agence
       const TOUT_FOR_AGENCY: Program = {

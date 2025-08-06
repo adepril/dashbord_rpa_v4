@@ -606,3 +606,28 @@ Tests
 
 Notes
 - Aucun fichier de backup modifié. Changements ciblés à Dashboard.tsx et au présent markdown.
+
+## 2025-08-06 — Filtrage des robots par agence dans ProgramSelector
+
+Contexte
+- Problème: lors d’un changement d’agence, la liste des robots dans ProgramSelector n’était pas filtrée. [`Dashboard.tsx`](components/Dashboard.tsx:1) réinjectait la liste complète via `setPrograms(cachedRobotsFromTableBaremeReport)`, ignorant le filtrage effectué côté [`AgencySelector.tsx`](components/AgencySelector.tsx:1).
+- Architecture existante: `AgencySelector` appelle `getRobotsByAgency(agencyId)` puis `updateRobots(robots)`, un mécanisme de pub/sub exposé par [`utils/dataStore.ts`](utils/dataStore.ts:227), à relayer via `setUpdateRobotsCallback`.
+
+Changements
+- [`Dashboard.tsx`](components/Dashboard.tsx:209): après `await initializeRobots4Agencies()`, enregistrement du callback:
+  - `setUpdateRobotsCallback((robots: Program[]) => { setPrograms(robots); });`
+- [`Dashboard.tsx`](components/Dashboard.tsx:419): suppression de `setPrograms(cachedRobotsFromTableBaremeReport)` dans `handleAgencyChange`. La mise à jour de la liste est désormais pilotée par le callback.
+
+Effets
+- Dès qu’une nouvelle agence est sélectionnée, `AgencySelector` publie la liste filtrée via `updateRobots(robots)`; `Dashboard` met à jour `programs` sans repasser par la liste complète.
+- `ProgramSelector` reçoit `robots` déjà filtrés et n’a pas besoin de logique supplémentaire.
+- Le comportement "TOUT" (TOUT_FOR_AGENCY) reste inchangé.
+
+Tests manuels
+- Sélectionner une agence A: le `ProgramSelector` n’affiche plus que les robots de A (+ TOUT).
+- Changer pour une agence B: la liste se met à jour automatiquement, sans robots d’autres agences.
+- Mode "TOUT": la vue agrégée (Chart4All) continue de fonctionner.
+
+Notes
+- Aucun changement apporté à `ProgramSelector.tsx`.
+- Respect des règles: backup intact, explications consignées dans ce fichier.
