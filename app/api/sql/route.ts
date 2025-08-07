@@ -165,6 +165,32 @@ export async function POST(request: NextRequest) {
                 await executeQuery(query, params);
                 return NextResponse.json({ message: 'Reporting data inserted successfully' }, { status: 201 });
 
+            case 'Evolutions':
+                // Insertion dans la table Evolutions
+                query = `
+                    INSERT INTO [BD_RPA_TEST].[dbo].[Evolutions] (
+                        [ID], [INTITULE], [DESCRIPTION], [DATE_MAJ], [NB_OPERATIONS_MENSUELLES],
+                        [ROBOT], [STATUT], [TEMPS_CONSOMME], [TYPE_DEMANDE], [TYPE_GAIN]
+                    ) VALUES (
+                        @ID, @INTITULE, @DESCRIPTION, @DATE_MAJ, @NB_OPERATIONS_MENSUELLES,
+                        @ROBOT, @STATUT, @TEMPS_CONSOMME, @TYPE_DEMANDE, @TYPE_GAIN
+                    )
+                `;
+                // Map data fields to SQL parameters
+                params.push({ name: 'ID', type: sql.Int, value: data.ID });
+                params.push({ name: 'INTITULE', type: sql.NVarChar(50), value: data.INTITULE });
+                params.push({ name: 'DESCRIPTION', type: sql.NVarChar(sql.MAX), value: data.DESCRIPTION });
+                params.push({ name: 'DATE_MAJ', type: sql.NVarChar(50), value: data.DATE_MAJ });
+                params.push({ name: 'NB_OPERATIONS_MENSUELLES', type: sql.NVarChar(50), value: data.NB_OPERATIONS_MENSUELLES });
+                params.push({ name: 'ROBOT', type: sql.NVarChar(50), value: data.ROBOT });
+                params.push({ name: 'STATUT', type: sql.NChar(10), value: data.STATUT });
+                params.push({ name: 'TEMPS_CONSOMME', type: sql.NChar(10), value: data.TEMPS_CONSOMME });
+                params.push({ name: 'TYPE_DEMANDE', type: sql.NChar(10), value: data.TYPE_DEMANDE });
+                params.push({ name: 'TYPE_GAIN', type: sql.NChar(10), value: data.TYPE_GAIN });
+                
+                await executeQuery(query, params);
+                return NextResponse.json({ message: 'Evolution data inserted successfully' }, { status: 201 });
+
             // Add cases for other tables if POST operations are needed (e.g., for users, services, etc.)
             // For now, only Reporting supports POST based on the provided example.
 

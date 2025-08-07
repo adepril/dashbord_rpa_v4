@@ -176,68 +176,35 @@ export default function MergedRequestForm({
     }
 
     try {
-      // Préparation des données pour l'insertion dans la table Evolutions
-      const evolutionData = {
-        ID: Math.floor(Math.random() * 1000000), // Génération d'un nombre entier aléatoire
-        INTITULE: formDataState.Intitulé,
-        DESCRIPTION: formDataState.Description,
-        DATE_MAJ: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        NB_OPERATIONS_MENSUELLES: formDataState.Nb_operations_mensuelles || '',
-        ROBOT: formDataState.Robot || '',
-        STATUT: formDataState.Statut || '1',
-        TEMPS_CONSOMME: formDataState.Temps_consommé || '',
-        TYPE_DEMANDE: formDataState.type || 'new',
-        TYPE_GAIN: formDataState.type_gain || ''
-      };
-
-      // Enregistrement dans la base de données
-      const dbResponse = await fetch('/api/sql', {
+      const response = await fetch('/api/sql?table=Evolutions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          table: 'Evolutions',
-          data: evolutionData
+          name: "Utilisateur BBL", 
+          email: "contact@bbl-groupe.fr",
+          subject: (formDataState.type === 'new' ? "Nouvelle demande" : "Demande d'évolution"),
+          message: `
+          ${formDataState.Robot === 'TOUT' ? '' : " <br>Robot :" + formDataState.Robot}
+          Intitulé: ${formDataState.Intitulé}
+          Description: ${formDataState.Description}
+          Temps consommé: ${formDataState.Temps_consommé}
+          Nb. operations mensuelles: ${formDataState.Nb_operations_mensuelles}
+          ${formDataState.type === 'new' ? "Date de création de la demande" : "Date de mise à jour de la demande"} : ${new Date().toLocaleString()}
+          `.trim()
         }),
       });
 
-      if (!dbResponse.ok) {
-        throw new Error('Failed to save to database');
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
-
-      // Envoi de l'email de notification (optionnel)
-      try {
-        await fetch('/api/sql?table=Evolutions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: "Utilisateur BBL",
-            email: "contact@bbl-groupe.fr",
-            subject: (formDataState.type === 'new' ? "Nouvelle demande" : "Demande d'évolution"),
-            message: `
-            ${formDataState.Robot === 'TOUT' ? '' : " <br>Robot :" + formDataState.Robot}
-            Intitulé: ${formDataState.Intitulé}
-            Description: ${formDataState.Description}
-            Temps consommé: ${formDataState.Temps_consommé}
-            Nb. operations mensuelles: ${formDataState.Nb_operations_mensuelles}
-            ${formDataState.type === 'new' ? "Date de création de la demande" : "Date de mise à jour de la demande"} : ${new Date().toLocaleString()}
-            `.trim()
-          }),
-        });
-      } catch (emailError) {
-        console.log('Erreur lors de l\'envoi de l\'email de notification:', emailError);
-        // On continue même si l'email échoue, car les données sont déjà enregistrées
-      }
-
       setIsLoading(false);
       setIsSuccess(true);
 
       toast({
         title: 'Succès !',
-        description: 'Votre demande a été enregistrée avec succès.',
+        description: 'Votre demande a été envoyée avec succès.',
         id: ''
       });
 
@@ -252,11 +219,11 @@ export default function MergedRequestForm({
       } else if (error instanceof Error) {
         errorData = { error: error.message };
       } else {
-        errorData = { error: 'Échec de l\'enregistrement de la demande' };
+        errorData = { error: 'Échec de l\'envoi de la demande' };
       }
       toast({
-        title: 'Erreur d\'enregistrement',
-        description: errorData.error || 'Échec de l\'enregistrement de la demande',
+        title: 'Erreur d\'envoi de mail',
+        description: errorData.error || 'Échec de l\'envoi de la demande',
         variant: 'destructive',
         id: ''
       });

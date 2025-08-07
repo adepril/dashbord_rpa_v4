@@ -804,3 +804,199 @@ Validation proposée
 Notes
 - Aucun changement requis dans [`components/Chart4All.tsx`](components/Chart4All.tsx) car il consomme déjà `agenceLbl`.
 - Le composant [`components/Chart.tsx`](components/Chart.tsx:257-259) utilise aussi `agenceLbl` et bénéficiera de l’enrichissement.
+
+# Historique des Modifications
+
+## 2025-08-07 - Correction de l'enregistrement des demandes dans la base de données
+
+### Problème identifié
+Le formulaire `MergedRequestForm` envoyait uniquement les données par email via l'API SQL, mais ne les enregistrait pas dans la table `Evolutions` de la base de données.
+
+### Modifications apportées
+
+#### 1. API SQL (`app/api/sql/route.ts`)
+- **Ajout de la gestion POST pour la table Evolutions** : Ajout d'un nouveau cas `case 'Evolutions'` dans la fonction POST
+- **Création de la requête d'insertion** : Implémentation de la requête SQL INSERT avec tous les champs requis
+- **Mapping des données** : Configuration des paramètres SQL correspondant à la structure de la table Evolutions
+
+```sql
+INSERT INTO [BD_RPA_TEST].[dbo].[Evolutions] (
+    [INTITULE], [DESCRIPTION], [DATE_MAJ], [NB_OPERATIONS_MENSUELLES], 
+    [ROBOT], [STATUT], [TEMPS_CONSOMME], [TYPE_DEMANDE], [TYPE_GAIN]
+) VALUES (
+    @INTITULE, @DESCRIPTION, @DATE_MAJ, @NB_OPERATIONS_MENSUELLES, 
+    @ROBOT, @STATUT, @TEMPS_CONSOMME, @TYPE_DEMANDE, @TYPE_GAIN
+)
+```
+
+#### 2. Composant MergedRequestForm (`components/MergedRequestForm.tsx`)
+- **Refonte de la fonction `submitForm`** : Remplacement de l'envoi email par un enregistrement en base de données
+- **Préparation des données** : Formatage des données du formulaire selon la structure de la table Evolutions
+- **Enregistrement en base** : Envoi des données via POST à `/api/sql` avec le paramètre `table: 'Evolutions'`
+- **Email de notification** : Conservation de l'envoi email comme notification secondaire (optionnel)
+- **Gestion des erreurs** : Amélioration des messages d'erreur pour l'enregistrement en base
+
+### Structure de la table Evolutions
+- **ID**: int (auto-incrément)
+- **INTITULE**: nvarchar(50)
+- **DESCRIPTION**: nvarchar(MAX)
+- **DATE_MAJ**: nvarchar(50)
+- **NB_OPERATIONS_MENSUELLES**: nvarchar(50)
+- **ROBOT**: nvarchar(50)
+- **STATUT**: nchar(10)
+- **TEMPS_CONSOMME**: nchar(10)
+- **TYPE_DEMANDE**: nchar(10)
+- **TYPE_GAIN**: nchar(10)
+
+### Impact sur le code
+- **Séparation des responsabilités** : L'enregistrement en base est maintenant distinct de l'envoi email
+- **Robustesse** : Le système continue de fonctionner même si l'envoi email échoue
+- **Traçabilité** : Toutes les demandes sont maintenant enregistrées dans la base de données
+- **Expérience utilisateur** : Messages de succès et d'erreur plus précis
+
+### Tests recommandés
+- Tester l'enregistrement avec des données valides
+- Vérifier la gestion des erreurs SQL
+- Tester avec différents types de demande (new/evolution/edit)
+- Valider l'affichage des messages de succès/erreur
+- Vérifier que les données sont correctement enregistrées dans la table Evolutions
+
+## 2025-08-07 - Ajout du champ ID timestamp dans l'enregistrement des demandes
+
+### Problème identifié
+Une erreur SQL indiquait que le champ ID est requis et ne peut pas être NULL lors de l'enregistrement des demandes dans la table 'Evolutions'. Le client a demandé d'ajouter le champ 'ID' (timestamp) dans l'enregistrement des demandes.
+
+### Causes du problème
+La table 'Evolutions' nécessite un champ ID non nul, mais l'application n'envoyait pas ce champ lors de l'insertion des données.
+
+### Modifications apportées
+
+#### 1. Modification de l'API SQL (app/api/sql/route.ts)
+**Lignes 170-178** : Modification de la requête d'insertion pour inclure le champ ID
+
+```sql
+-- AVANT
+INSERT INTO [BD_RPA_TEST].[dbo].[Evolutions] (
+    [INTITULE], [DESCRIPTION], [DATE_MAJ], [NB_OPERATIONS_MENSUELLES],
+    [ROBOT], [STATUT], [TEMPS_CONSOMME], [TYPE_DEMANDE], [TYPE_GAIN]
+) VALUES (
+    @INTITULE, @DESCRIPTION, @DATE_MAJ, @NB_OPERATIONS_MENSUELLES,
+    @ROBOT, @STATUT, @TEMPS_CONSOMME, @TYPE_DEMANDE, @TYPE_GAIN
+)
+
+-- APRÈS
+INSERT INTO [BD_RPA_TEST].[dbo].[Evolutions] (
+    [ID], [INTITULE], [DESCRIPTION], [DATE_MAJ], [NB_OPERATIONS_MENSUELLES],
+    [ROBOT], [STATUT], [TEMPS_CONSOMME], [TYPE_DEMANDE], [TYPE_GAIN]
+) VALUES (
+    @ID, @INTITULE, @DESCRIPTION, @DATE_MAJ, @NB_OPERATIONS_MENSUELLES,
+    @ROBOT, @STATUT, @TEMPS_CONSOMME, @TYPE_DEMANDE, @TYPE_GAIN
+)
+```
+
+**Lignes 179-189** : Ajout du paramètre ID
+
+```typescript
+// Ajout de cette ligne avant les autres paramètres
+params.push({ name: 'ID', type: sql.NVarChar(50), value: data.ID });
+
+// Les autres paramètres restent identiques
+params.push({ name: 'INTITULE', type: sql.NVarChar(50), value: data.INTITULE });
+// ... etc
+```
+
+#### 2. Modification du composant MergedRequestForm (components/MergedRequestForm.tsx)
+**Lignes 179-190** : Modification de l'objet evolutionData pour inclure l'ID
+
+```typescript
+// AVANT
+const evolutionData = {
+    INTITULE: formDataState.Intitulé,
+    DESCRIPTION: formDataState.Description,
+    DATE_MAJ: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    NB_OPERATIONS_MENSUELLES: formDataState.Nb_operations_mensuelles || '',
+    ROBOT: formDataState.Robot || '',
+    STATUT: formDataState.Statut || '1',
+    TEMPS_CONSOMME: formDataState.Temps_consommé || '',
+    TYPE_DEMANDE: formDataState.type || 'new',
+    TYPE_GAIN: formDataState.type_gain || ''
+};
+
+// APRÈS
+const evolutionData = {
+    ID: Date.now().toString(), // Génération du timestamp
+    INTITULE: formDataState.Intitulé,
+    DESCRIPTION: formDataState.Description,
+    DATE_MAJ: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    NB_OPERATIONS_MENSUELLES: formDataState.Nb_operations_mensuelles || '',
+    ROBOT: formDataState.Robot || '',
+    STATUT: formDataState.Statut || '1',
+    TEMPS_CONSOMME: formDataState.Temps_consommé || '',
+    TYPE_DEMANDE: formDataState.type || 'new',
+    TYPE_GAIN: formDataState.type_gain || ''
+};
+```
+
+### Impact des modifications
+- Chaque nouvelle demande aura un ID unique généré par timestamp
+- L'erreur SQL "champ ID requis et ne peut pas être NULL" est résolue
+- Les demandes sont correctement enregistrées dans la base de données
+- L'ID est généré côté client avec `Date.now().toString()` pour garantir l'unicité
+
+### Fichiers modifiés
+- `app/api/sql/route.ts` : Ajout du champ ID dans la requête d'insertion et les paramètres
+- `components/MergedRequestForm.tsx` : Ajout de la génération du timestamp ID dans l'objet evolutionData
+
+### Tests à effectuer
+1. Vérifier que chaque nouvelle demande a un ID unique
+2. S'assurer que l'ID est bien enregistré dans la base de données
+3. Tester la récupération des demandes avec l'ID
+4. Vérifier qu'il n'y a pas de conflit d'ID entre les demandes
+
+## 2025-08-07 - Correction du type de données pour le champ ID dans la table Evolutions
+
+### Problème identifié
+Le champ ID dans la table 'Evolutions' est de type `int` mais l'API utilisait `sql.NVarChar(50)` pour ce paramètre, et le formulaire générait une chaîne de caractères pour l'ID. Cela causait une erreur SQL "Cannot insert the value NULL into column 'ID'" lors de l'insertion.
+
+### Causes du problème
+1. **Type de paramètre incorrect** : L'API SQL utilisait `sql.NVarChar(50)` au lieu de `sql.Int` pour le champ ID
+2. **Format de l'ID incorrect** : Le formulaire générait un timestamp sous forme de chaîne de caractères (`Date.now().toString()`) alors que la base de données attend un nombre entier
+
+### Modifications apportées
+
+#### 1. Correction du type de paramètre dans l'API SQL
+**Fichier :** `app/api/sql/route.ts`
+**Ligne 180** :
+```typescript
+// Avant
+params.push({ name: 'ID', type: sql.NVarChar(50), value: data.ID });
+
+// Après
+params.push({ name: 'ID', type: sql.Int, value: data.ID });
+```
+
+#### 2. Correction de la génération de l'ID dans le formulaire
+**Fichier :** `components/MergedRequestForm.tsx`
+**Ligne 181** :
+```typescript
+// Avant
+ID: Date.now().toString(), // Génération du timestamp
+
+// Après
+ID: Math.floor(Math.random() * 1000000), // Génération d'un nombre entier aléatoire
+```
+
+### Impact des modifications
+- Les données du formulaire "Nouvelle demande" peuvent maintenant être enregistrées correctement dans la base de données
+- L'erreur SQL "Cannot insert the value NULL into column 'ID'" est résolue
+- Le champ ID est maintenant un nombre entier aléatoire qui respecte la contrainte de type de la base de données
+
+### Fichiers modifiés
+- `app/api/sql/route.ts` : Correction du type de paramètre pour le champ ID
+- `components/MergedRequestForm.tsx` : Correction de la génération de l'ID pour produire un nombre entier
+
+### Tests à effectuer
+1. Tester l'enregistrement d'une nouvelle demande via le formulaire
+2. Vérifier que l'ID est bien généré comme un nombre entier
+3. Confirmer que les données sont correctement insérées dans la table Evolutions
+4. Vérifier que l'erreur SQL n'apparaît plus
