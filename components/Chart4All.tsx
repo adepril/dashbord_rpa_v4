@@ -59,7 +59,7 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
-console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
+//console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
 
 // États locaux du composant :
 // robots : tableau de robots filtrés pour l'affichage dans la section "Le saviez-vous ?"
