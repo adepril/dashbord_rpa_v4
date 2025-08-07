@@ -731,3 +731,76 @@ Tests manuels effectués:
 
 Notes:
 - Cette centralisation simplifie la responsabilité: les données restent “brutes” dans le store, l’UI enrichit l’affichage selon le besoin.
+
+## 2025-08-07 - Ajout du libellé d'agence dans robotData pour Chart.tsx
+
+Contexte
+- Objectif: afficher le libellé complet de l’agence dans la section Description de [components/Chart.tsx](components/Chart.tsx:258) via la propriété `data.agenceLbl`.
+- Constat initial:
+  - `Chart.tsx` lit `data.agenceLbl` à la ligne 258.
+  - L’objet `processedData` est construit dans [components/Dashboard.tsx](components/Dashboard.tsx:373-381) en fusionnant l’entrée de reporting `robotEntry` et `selectedRobotData`.
+  - Le type [utils/dataStore.Robot](utils/dataStore.ts:47) prévoit déjà un champ optionnel `agenceLbl`.
+  - La table de référence des agences est accessible via [utils/dataStore.getCachedAllAgencies()](utils/dataStore.ts:589) alimentée par `loadAllAgencies()`.
+
+Changements effectués
+- Fichier modifié: [components/Dashboard.tsx](components/Dashboard.tsx:371)
+- Enrichissement de `processedData` avec un champ `agenceLbl` résolu ainsi:
+  1. Priorité à `selectedRobotData?.agenceLbl` si déjà présent
+  2. Sinon, recherche dans `getCachedAllAgencies()` le `libelleAgence` correspondant à `selectedRobotData?.agence`
+  3. Fallback sur le code agence si non trouvé
+
+Extrait du patch (logique ajoutée)
+- Résolution:
+  - `const allAgencies = getCachedAllAgencies();`
+  - `const resolvedAgenceLbl = selectedRobotData?.agenceLbl || allAgencies.find(a => a.codeAgence === selectedRobotData?.agence)?.libelleAgence || selectedRobotData?.agence;`
+- Construction:
+  - `const processedData = { ...robotEntry, ..., ...selectedRobotData, agenceLbl: resolvedAgenceLbl };`
+
+Impact
+- `Chart.tsx` dispose désormais de `data.agenceLbl` garanti pour les cas où un robot spécifique est sélectionné, sans modifier la branche "TOUT" utilisée par [components/Chart4All.tsx](components/Chart4All.tsx:1).
+- Typage: `agenceLbl` est déjà présent dans l’interface `Robot`, donc pas d’ajout d’interface nécessaire.
+- Robustesse: un fallback est prévu lorsque le libellé n’est pas trouvé dans le cache.
+
+Tests et vérifications
+- Vérifier visuellement l’affichage de l’agence dans la carte Description de [components/Chart.tsx](components/Chart.tsx:258).
+- Cas de bord couverts: agence non trouvée dans le cache => affichage du code agence.
+
+Notes
+- Aucun effet de bord attendu sur l’agrégat “TOUT” (branche `setUseChart4All(true)`).
+- En cas de future évolution, on pourra propager `agenceLbl` dès la constitution des robots en cache, mais la présente solution garde un périmètre minimal et localisé.
+
+# 2025-08-07 — Enrichissement des données robots avec le libellé d’agence (agenceLbl)
+
+Contexte
+- L’UI “Le saviez-vous ?” dans [`components/Chart4All.tsx`](components/Chart4All.tsx:283) attend déjà `robots[currentIndex]?.agenceLbl`.
+- Le type `Robot` inclut `agenceLbl?: string` dans [`utils/dataStore.ts`](utils/dataStore.ts:51-53).
+- Les données robots provenant de SQL (chargées via `loadAllRobots`) n’ajoutaient pas `agenceLbl`, et `cachedRobots4Agencies` était construit sans enrichissement, ce qui laissait `agenceLbl` indéfini dans Chart4All.
+
+Objectif
+- Fournir le libellé d’agence (`agenceLbl`) au composant Chart4All en enrichissant la construction du cache `cachedRobots4Agencies`.
+
+Changements effectués
+- Fichier: [`utils/dataStore.ts`](utils/dataStore.ts)
+  - Fonction: `initializeRobots4Agencies` (autour des lignes 538+)
+  - Modification: après filtrage des robots selon les agences présentes dans le reporting, mappage des entrées pour injecter `agenceLbl` en joignant `cachedAllAgencies`:
+    - Recherche de l’agence correspondante via `cachedAllAgencies.find(a => a.codeAgence === r.agence)`
+    - Attribution de `agenceLbl = agency?.libelleAgence || r.agence` (fallback sur le code si le libellé est introuvable)
+  - Log mis à jour pour indiquer que `agenceLbl` est résolu.
+
+Impact
+- `cachedRobots4Agencies` contient maintenant `agenceLbl` pour chaque robot.
+- Chart4All peut afficher directement le libellé d’agence sans logique supplémentaire.
+- Fallback robuste: si une agence n’est pas trouvée dans le cache, l’affichage utilise le code d’agence.
+
+Pré-requis/Ordonnancement
+- `loadAllAgencies()` doit s’exécuter avant `initializeRobots4Agencies()`. Le flux actuel dans [`components/Dashboard.tsx`](components/Dashboard.tsx:168-186) respecte cet ordre.
+
+Validation proposée
+- Vérifier dans l’UI de Chart4All le rendu de la ligne:
+  - “Agence : &lt;libellé résolu&gt;” pour plusieurs robots.
+- Vérifier la console pour:
+  - “cachedRobots4Agencies initialisé avec succès (agenceLbl résolu)”.
+
+Notes
+- Aucun changement requis dans [`components/Chart4All.tsx`](components/Chart4All.tsx) car il consomme déjà `agenceLbl`.
+- Le composant [`components/Chart.tsx`](components/Chart.tsx:257-259) utilise aussi `agenceLbl` et bénéficiera de l’enrichissement.

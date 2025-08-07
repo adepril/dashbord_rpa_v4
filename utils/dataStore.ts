@@ -546,11 +546,20 @@ export async function initializeRobots4Agencies(): Promise<void> {
       return agencyCodes.has(robot.agence);
     });
 
+    // Enrichir chaque robot avec le libellé d'agence (agenceLbl)
+    const withLabels = filteredRobots.map((r) => {
+      const agency = cachedAllAgencies.find(a => a.codeAgence === r.agence);
+      return {
+        ...r,
+        agenceLbl: agency?.libelleAgence || r.agence
+      };
+    });
+    
     // Mettre à jour cachedRobots4Agencies
-    cachedRobots4Agencies = [...filteredRobots];
+    cachedRobots4Agencies = withLabels;
     
     console.log('Robots filtrés pour les agences du reporting:', cachedRobots4Agencies.length);
-    console.log('cachedRobots4Agencies initialisé avec succès');
+    console.log('cachedRobots4Agencies initialisé avec succès (agenceLbl résolu)');
     
     // Notifier les abonnés du changement
     notifyRobotDataListeners();

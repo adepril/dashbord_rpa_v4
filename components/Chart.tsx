@@ -50,7 +50,7 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 
 export default function Chart({ robotType, data, selectedAgency, setSelectedMonth,selectedMonth , totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
-    // console.log("Chart.tsx - data:", data);
+    //console.log("Chart.tsx - data:", data);
     // console.log("Chart.tsx - selectedmonth:", selectedMonth);
     // console.log("Chart.tsx - totalCurrentMonth:", totalCurrentMonth);
     // console.log("Chart.tsx - totalPrevMonth1:", totalPrevMonth1);
@@ -162,10 +162,10 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
                         const { valeur, date } = payload[0].payload;
                         if (valeur === undefined || valeur === 0) return null;
 
-                        if (robotType?.toLowerCase() === "temps") {
+                        if (robotType?.toLowerCase().includes("temps")) {
                           // Calculate gain and number of treatments for 'temps' robotType
-                          const gain = 'Gain : ' + formatDuration(valeur);
-                          const nbTraitement = 'Nb traitement : ' + (data.temps_par_unite ? Math.round(valeur / data.temps_par_unite) : 'N/A');
+                          const gain = 'Gain : ' + formatDuration(valeur*data.temps_par_unite.replace(",", "."));
+                          const nbTraitement = 'Nb traitement : ' + formatDuration(valeur).replace("min", "");
                           // Format the date for display
                           const dateFormatted = new Date(date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
                           return (
@@ -193,9 +193,9 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
                         position: 'top',
                         fill: '#000',
                         fontSize: 10,
-                        formatter: (value: number) => value === 0 ? '' : (robotType?.toLowerCase() === "temps" ? formatDuration(value) : `${value}`)
+                        formatter: (value: number) => value === 0 ? '' : (robotType?.toLowerCase() === "temps" ? formatDuration(value) : `${formatDuration(value*data.temps_par_unite.replace(",", "."))}`)
                       }}
-                      activeBar={{ fill: robotType?.toLowerCase() === "temps" ? '#3333db' : '#c24a0a' }}
+                      activeBar={{ fill: robotType?.toLowerCase() === "temps" ? '#3498db' : '#3333db' }}
                       />
                   </BarChart>
                 </ResponsiveContainer>
@@ -215,19 +215,19 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
 
                     <div className={selectedMonth?.toLowerCase()==='n' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelCurrent}</h3>
-                      <p className="text-2xl  font-bold pl-5">{formatDuration(totalCurrentMonth)} </p>
+                      <p className="text-2xl  font-bold pl-5">{formatDuration(totalCurrentMonth*data.temps_par_unite.replace(",", "."))} </p> 
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-1' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-1')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev1}</h3>
-                      <p className="text-2xl font-bold pl-5 ">{formatDuration(totalPrevMonth1)} </p>
+                      <p className="text-2xl font-bold pl-5 ">{formatDuration(totalPrevMonth1*data.temps_par_unite.replace(",", "."))} </p>
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-2' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-2')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev2}</h3>
-                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth2)}</p>
+                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth2*data.temps_par_unite.replace(",", "."))}</p>
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-3' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-3')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev3}</h3>
-                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth3)}</p>
+                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth3*data.temps_par_unite.replace(",", "."))}</p>
                     </div>
 
                 </>

@@ -197,7 +197,7 @@ export default function Dashboard() {
 
           // Étape 4: Charger les données de reporting pour 4 mois
           await initializeReportingData();
-          // console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
+          console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
           // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
@@ -371,12 +371,20 @@ export default function Dashboard() {
         })();
 
         if (robotEntry) {
+          // Résoudre le libellé d'agence à partir du cache des agences
+          const allAgencies = getCachedAllAgencies();
+          const resolvedAgenceLbl =
+            selectedRobotData?.agenceLbl ||
+            allAgencies.find(a => a.codeAgence === selectedRobotData?.agence)?.libelleAgence ||
+            selectedRobotData?.agence;
+
           const processedData = {
             ...robotEntry,
             'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
               ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
               : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), // Correction ici
-            ...selectedRobotData
+            ...selectedRobotData,
+            agenceLbl: resolvedAgenceLbl
           };
           setRobotData(processedData);
           setRobotDataForBarChart(processedData);
@@ -407,110 +415,105 @@ export default function Dashboard() {
 }, [selectedRobotData, selectedMonth, robots, selectedAgency]);
 
 
-  // ------------------------------------------------------------------
-  // Gestion du changement d'agence
-  // ------------------------------------------------------------------
-  const handleAgencyChange = (agencyCode: string) => {
-    const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
-    console.log('--- AGENCY CHANGE BEGIN ---');
-    console.log('Agence choisie:', agencySelected);
-  
-    if (agencySelected) {
-      setSelectedAgency(agencySelected);
-  
-      // Mettre à jour les robots en fonction de l'agence sélectionnée
-      // Les robots seront mis à jour via le callback setUpdateRobotsCallback appelé par AgencySelector
-  
-      // Au lieu de remettre à null, forcer un "TOUT" contextualisé sur l'agence
-      const TOUT_FOR_AGENCY: Robot = {
-        ...TOUT_ROBOT,
-        agence: agencySelected.codeAgence
-      };
-      console.log('[Dashboard] handleAgencyChange - Forcing TOUT Robot for agency:', TOUT_FOR_AGENCY);
-      setSelectedRobot(TOUT_FOR_AGENCY);
-      setSelectedRobotData(TOUT_FOR_AGENCY);
-      // On peut aussi réinitialiser le mois sur 'N' si souhaité (optionnel)
-      // setSelectedMonth('N');
-    }
-  
-    console.log('--- AGENCY CHANGE END ---');
-  };
+    // ------------------------------------------------------------------
+    // Gestion du changement d'agence
+    // ------------------------------------------------------------------
+    const handleAgencyChange = (agencyCode: string) => {
+      const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
+      console.log('--- AGENCY CHANGE BEGIN ---');
+      console.log('Agence choisie:', agencySelected);
+    
+      if (agencySelected) {
+        setSelectedAgency(agencySelected);
+    
+        // Mettre à jour les robots en fonction de l'agence sélectionnée
+        // Les robots seront mis à jour via le callback setUpdateRobotsCallback appelé par AgencySelector
+    
+        // Au lieu de remettre à null, forcer un "TOUT" contextualisé sur l'agence
+        const TOUT_FOR_AGENCY: Robot = {
+          ...TOUT_ROBOT,
+          agence: agencySelected.codeAgence
+        };
+        //console.log('[Dashboard] handleAgencyChange - Forcing TOUT Robot for agency:', TOUT_FOR_AGENCY);
+        setSelectedRobot(TOUT_FOR_AGENCY);
+        setSelectedRobotData(TOUT_FOR_AGENCY);
+        // On peut aussi réinitialiser le mois sur 'N' si souhaité (optionnel)
+        // setSelectedMonth('N');
+      }
+    
+      console.log('--- AGENCY CHANGE END ---');
+    };
 
-  // ------------------------------------------------------------------
-  // Gestion du changement de robot
-  // ------------------------------------------------------------------
-  const handleRobotChange = (robotID: string) => {
-    console.log('--- BEGIN ROBOT CHANGE - robotID:', robotID);
+    // ------------------------------------------------------------------
+    // Gestion du changement de robot
+    // ------------------------------------------------------------------
+    const handleRobotChange = (robotID: string) => {
+      console.log('--- BEGIN ROBOT CHANGE - robotID:', robotID);
 
-    // Cas spécial: retour à "TOUT"
-    // - Si l'utilisateur choisit l'option "TOUT" dans le sélecteur robot,
-    //   on construit un Robot synthétique contextualisé à l'agence sélectionnée.
-    // - L'id_robot attendu pour cohérence interne suit le format "<CODE_AGENCE>_TOUT".
-    if (robotID === 'TOUT' || robotID.endsWith('_TOUT')) {
-      const activeAgencyCode = selectedAgency?.codeAgence || 'TOUT';
-      const TOUT_FOR_AGENCY: Robot = {
-        ...TOUT_ROBOT,
-        agence: activeAgencyCode,
-        id_robot: `${activeAgencyCode}_TOUT`,
-      };
-      console.log('[Dashboard] handleRobotChange - Switching to TOUT for agency:', TOUT_FOR_AGENCY);
-      setSelectedRobot(TOUT_FOR_AGENCY);
-      setSelectedRobotData(TOUT_FOR_AGENCY);
-      console.log('--- END ROBOT CHANGE (TOUT) ---');
-      return;
-    }
+      // Cas spécial: retour à "TOUT"
+      // - Si l'utilisateur choisit l'option "TOUT" dans le sélecteur robot,
+      //   on construit un Robot synthétique contextualisé à l'agence sélectionnée.
+      // - L'id_robot attendu pour cohérence interne suit le format "<CODE_AGENCE>_TOUT".
+      if (robotID === 'TOUT' || robotID.endsWith('_TOUT')) {
+        const activeAgencyCode = selectedAgency?.codeAgence || 'TOUT';
+        const TOUT_FOR_AGENCY: Robot = {
+          ...TOUT_ROBOT,
+          agence: activeAgencyCode,
+          id_robot: `${activeAgencyCode}_TOUT`,
+        };
+        //console.log('[Dashboard] handleRobotChange - Switching to TOUT for agency:', TOUT_FOR_AGENCY);
+        setSelectedRobot(TOUT_FOR_AGENCY);
+        setSelectedRobotData(TOUT_FOR_AGENCY);
+        //console.log('--- END ROBOT CHANGE (TOUT) ---');
+        return;
+      }
 
-    const robot = robots.find(r => r.id_robot === robotID);
-    console.log('Robot sélectionné:', robot);
-    console.log('Agence sélectionnée:', selectedAgency);
-    if (robot && selectedAgency) {
-      setSelectedRobot(robot);
-      setSelectedRobotData(robot);
-    } else {
-      console.log('_Robot ou agence non trouvé');
-      //setSelectedRobot(null);
-      //setSelectedRobotData(null);
-    }
-    console.log('--- END ROBOT CHANGE - ', robotID);
-  };
-
-  const handleOpenForm = () => {
-    setIsFormOpen(true);
-  };
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-  };
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  const updateService = (filteredRobots: Robot[]) => {
-    const services = new Set<string>();
-    services.add("TOUT");
-
-    filteredRobots.forEach(robot => {
-      if (robot.service) {
-        services.add(robot.service);
+      const robot = robots.find(r => r.id_robot === robotID);
+      if (robot && selectedAgency) {
+        setSelectedRobot(robot);
+        setSelectedRobotData(robot);
       } else {
-        services.add("TOUT");
+        console.log('Robot ou agence non trouvé');
       }
-    });
+      //console.log('--- END ROBOT CHANGE - ', robotID);
+    };
 
-    if (!isUserSelectingService) {
-      setAvailableServices(services);
+    const handleOpenForm = () => {
+      setIsFormOpen(true);
+    };
 
-      if (selectedService && !services.has(selectedService)) {
-        setSelectedService("TOUT");
-      }
-    } else {
-      setIsUserSelectingService(false);
+    const handleCloseForm = () => {
+      setIsFormOpen(false);
+    };
+
+    if (error) {
+      return <div className="text-red-500">{error}</div>;
     }
-  };
 
+    const updateService = (filteredRobots: Robot[]) => {
+      const services = new Set<string>();
+      services.add("TOUT");
 
+      filteredRobots.forEach(robot => {
+        if (robot.service) {
+          services.add(robot.service);
+        } else {
+          services.add("TOUT");
+        }
+      });
 
+      if (!isUserSelectingService) {
+        setAvailableServices(services);
+
+        if (selectedService && !services.has(selectedService)) {
+          setSelectedService("TOUT");
+        }
+      } else {
+        setIsUserSelectingService(false);
+      }
+    };
+
+    // Si l'utilisateur n'est pas connecté, afficher un message d'erreur
     if (!userId) {
       return <div className="text-red-500">Pas d'utilisateur connecté</div>;
     }
