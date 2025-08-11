@@ -102,6 +102,37 @@ export async function GET(request: NextRequest) {
                 result = await executeQuery(query);
                 return NextResponse.json(result.recordset);
 
+            case 'Evolutions':
+                // Support three retrieval modes:
+                // 1) All evolutions (no filter)
+                // 2) Evolutions for a specific agency (agency param) -> robots belonging to that agency
+                // 3) Evolutions for a single robot (robot param)
+                const robotParam = url.searchParams.get('robot') || url.searchParams.get('robotId') || url.searchParams.get('programme');
+                const agencyParam = url.searchParams.get('agency') || url.searchParams.get('agence') || url.searchParams.get('agencyCode');
+
+                // Default: return all rows
+                query = `SELECT * FROM [BD_RPA_TEST].[dbo].[Evolutions] WHERE 1=1`;
+                if (robotParam && robotParam.length > 0) {
+                    query += ` AND [ROBOT] = @robot`;
+                    params.push({ name: 'robot', type: sql.NVarChar(200), value: robotParam });
+                } else if (agencyParam && agencyParam.length > 0) {
+                    // If an agency is provided, return evolutions for robots that belong to that agency.
+                    // We infer robot membership from the Reporting table (NOM_ROBOT / AGENCE).
+                    query = `
+                        SELECT e.*
+                        FROM [BD_RPA_TEST].[dbo].[Evolutions] e
+                        WHERE e.[ROBOT] IN (
+                            SELECT DISTINCT [NOM_ROBOT] FROM [BD_RPA_TEST].[dbo].[Reporting] WHERE [AGENCE] = @agency
+                        )
+                    `;
+                    params.push({ name: 'agency', type: sql.NVarChar(100), value: agencyParam });
+                } else {
+                    // no extra params -> full table (query already set)
+                }
+
+                result = await executeQuery(query, params);
+                return NextResponse.json(result.recordset);
+
             default:
                 // Should not reach here due to ALLOWED_TABLES check, but as a fallback
                 return NextResponse.json({ error: 'Unsupported table' }, { status: 400 });

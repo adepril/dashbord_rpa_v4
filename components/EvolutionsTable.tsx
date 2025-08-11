@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "./ui/table"
 import { Button } from "./ui/button"
-import { fetchStatuts, allRobotsByAgency, fetchEvolutionsByProgram } from '../utils/dataFetcher'
+import { fetchStatuts, allRobotsByAgency, fetchAllEvolutions, fetchEvolutionsByRobot } from '../utils/dataFetcher'
 import MergedRequestForm from './MergedRequestForm'
 
 interface EvolutionsTableProps {

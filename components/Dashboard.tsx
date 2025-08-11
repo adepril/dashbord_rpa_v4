@@ -14,24 +14,20 @@ import MergedRequestForm from './MergedRequestForm'
 import AgencySelector from './AgencySelector'
 import ServiceSelector from './ServiceSelector'
 import Image from 'next/image';
-import {
-  // fetchAllEvolutions,
-  formatNumber
-} from '../utils/dataFetcher'
+import { fetchAllEvolutions, fetchEvolutionsByRobot, fetchEvolutionsByAgency, formatNumber } from '../utils/dataFetcher'
 
 import {
   initializeReportingData,
   initializeRobots4Agencies, // Importation ajoutée pour initialiser les robots des agences présentes dans le reporting
-  getCachedAgencies,
+  //getCachedAgencies,
   getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
   loadAllServices, // Importation ajoutée
   loadAllRobots, // Importation ajoutée
   cachedServices, // Importation ajoutée
   cachedRobotsFromTableBaremeReport, // Importation ajoutée
-
   Agency,
   Robot,
-  isDataInitialized,
+  //isDataInitialized,
   resetCache,
   isFirstLoginSession,
   setUpdateRobotsCallback,
@@ -140,7 +136,7 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   useEffect(() => {
     const storedUserData = localStorage.getItem('userData');
-    console.log('Dashboard - storedUserData:', storedUserData);
+    //console.log('Dashboard - storedUserData:', storedUserData);
     if (storedUserData) {
       setUserData(JSON.parse(storedUserData));
     } else {
@@ -156,8 +152,8 @@ export default function Dashboard() {
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    console.log('(Dashboard) -userName:', userName, ' -userId:', userId, ' -userAgenceIds:', userAgenceIds);  
-    console.log('isDataInitialized:', isDataInitialized());
+    //console.log('(Dashboard) -userName:', userName, ' -userId:', userId, ' -userAgenceIds:', userAgenceIds);  
+    //console.log('isDataInitialized:', isDataInitialized());
     if (!initialized.current && userId) {
       initialized.current = true;
 
@@ -172,7 +168,7 @@ export default function Dashboard() {
           // Une fois les données mises en cache, les récupérer et définir l'état du composant
           const userAgencies = getCachedAllAgencies();
           setAgencies(userAgencies);
-          console.log('(Dashboard) initializeReportingData - Agences récupérées (userAgencies):', userAgencies);
+          //console.log('(Dashboard) initializeReportingData - Agences récupérées (userAgencies):', userAgencies);
 
           // Définir l'agence par défaut
           const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
@@ -186,7 +182,7 @@ export default function Dashboard() {
 
           //Etape 3: Charger les services de la table 'Services'
           await loadAllServices();
-          console.log('Tous les services chargés en cache:', cachedServices);
+          //console.log('Tous les services chargés en cache:', cachedServices);
           setAvailableServices(new Set(cachedServices));
           // Définir le service par défaut
           setSelectedService('TOUT'); //?
@@ -414,6 +410,47 @@ export default function Dashboard() {
 
 
     // ------------------------------------------------------------------
+// ------------------------------------------------------------------
+// Chargement des données d'évolution (historique) affichées dans le tableau
+// Logique :
+// - Si un robot spécifique est sélectionné (robot != 'TOUT') => fetchEvolutionsByRobot
+// - Si robot === 'TOUT' et agence === 'TOUT' => fetchAllEvolutions (tous les enregistrements, y compris ROBOT='TOUT')
+// - Si robot === 'TOUT' et agence != 'TOUT' => fetchEvolutionsByAgency (robots de l'agence)
+// ------------------------------------------------------------------
+useEffect(() => {
+  const loadEvolutionsForTable = async () => {
+    try {
+      let evoData: any[] = [];
+      const robotName = selectedRobot?.robot || selectedRobotData?.robot || '';
+      const agencyCode = selectedAgency?.codeAgence || 'TOUT';
+
+      if (robotName && robotName !== 'TOUT') {
+        // Robot spécifique
+        evoData = await fetchEvolutionsByRobot(robotName, selectedMonth);
+      } else if (robotName === 'TOUT' && agencyCode === 'TOUT') {
+        // Vue "TOUT" global : récupérer toutes les évolutions (y compris celles où ROBOT='TOUT')
+        evoData = await fetchAllEvolutions();
+      } else if (robotName === 'TOUT' && agencyCode !== 'TOUT') {
+        // Vue "TOUT" limitée à une agence : récupérer les évolutions des robots de l'agence
+        evoData = await fetchEvolutionsByAgency(agencyCode, selectedMonth);
+      } else {
+        // Cas de repli : récupérer tout
+        evoData = await fetchAllEvolutions();
+      }
+
+      // DEBUG: journaliser les résultats reçus avant affectation
+      console.log('[Dashboard] loadEvolutionsForTable - received count:', evoData?.length ?? 0);
+      console.log('[Dashboard] loadEvolutionsForTable - sample first 5:', (evoData || []).slice(0, 5));
+
+      setHistoriqueData(evoData);
+    } catch (err) {
+      console.error('[Dashboard] loadEvolutionsForTable error:', err);
+      setHistoriqueData([]);
+    }
+  };
+
+  loadEvolutionsForTable();
+}, [selectedRobot, selectedRobotData, selectedAgency, selectedMonth, robots]);
     // Gestion du changement d'agence
     // ------------------------------------------------------------------
     const handleAgencyChange = (agencyCode: string) => {

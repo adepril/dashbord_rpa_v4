@@ -55,32 +55,52 @@ interface Evolution {
 export async function fetchAllEvolutions(): Promise<Evolution[]> {
   console.log('fetchAllEvolutions');
   try {
-    const response = await fetch('/api/sql/data?table=evolutions');
+    // Appel de l'API centrale (utiliser le nom de table tel que whitelisté côté serveur)
+    const response = await fetch('/api/sql?table=Evolutions');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
-    // Transformation des données en format attendu
-    const results = data.map((doc: any) => ({
-      id: doc.ID,
-      Robot: doc.ROBOT, // Ensure Robot property is present
-      statut: doc.STATUT || 1,
-      'Date de la demande': doc.DATE_MAJ ? new Date(doc.DATE_MAJ).toLocaleDateString('fr-FR') : '',
-      ...doc
-    }));
 
-    // Filtrage des résultats (ex: 5 plus récents par robot)
-    const filteredResults: Evolution[] = [];
-    const robots = new Set(results.map((item: Evolution) => item.Robot));
-
-    robots.forEach(robot => {
-      const robotEvolutions = results.filter((evo: Evolution) => evo.Robot === robot);
-      const latestEvolutions = robotEvolutions.slice(-5); // Garder les 5 dernières évolutions
-      filteredResults.push(...latestEvolutions);
+    // Normaliser et mapper les colonnes SQL vers les clés attendues par les composants
+    const results = data.map((doc: any) => {
+      const rawDateStr = doc.DATE_MAJ ? String(doc.DATE_MAJ) : null;
+      return {
+        id: doc.ID,
+        Intitulé: doc.INTITULE || doc.INTITULÉ || '',
+        Description: doc.DESCRIPTION || '',
+        Robot: doc.ROBOT || '',
+        Statut: (doc.STATUT !== undefined && doc.STATUT !== null) ? String(doc.STATUT) : '1',
+        Nb_operations_mensuelles: doc.NB_OPERATIONS_MENSUELLES ?? '',
+        Temps_consommé: doc.TEMPS_CONSOMME ?? '',
+        Date: rawDateStr || (doc.DATE_MAJ ? String(doc.DATE_MAJ) : ''),
+        DATE_MAJ_RAW: rawDateStr, // champ interne (string) pour tri/diagnostic
+        ...doc
+      };
     });
 
-    return filteredResults;
+    // Fonction utilitaire de parsing sécurisé pour tri (supporte DD/MM/YYYY et autres formats)
+    const getTimestamp = (s: string | null) => {
+      if (!s) return 0;
+      const dmy = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+      if (dmy) {
+        const day = parseInt(dmy[1], 10);
+        const month = parseInt(dmy[2], 10) - 1;
+        const year = parseInt(dmy[3], 10);
+        return new Date(year, month, day).getTime();
+      }
+      const t = Date.parse(s);
+      return isNaN(t) ? 0 : t;
+    };
+
+    // Trier par date descendante (les plus récentes en premier) en utilisant parsing sécurisé
+    results.sort((a: any, b: any) => {
+      const da = getTimestamp(a.DATE_MAJ_RAW);
+      const db = getTimestamp(b.DATE_MAJ_RAW);
+      return db - da;
+    });
+
+    return results;
   } catch (error) {
     console.log('Error fetching evolutions:', error);
     return [];
@@ -95,20 +115,113 @@ export async function fetchAllEvolutions(): Promise<Evolution[]> {
 export async function fetchEvolutionsByRobot(robotId: string, selectedMonth: string = 'N'): Promise<Evolution[]> {
   console.log(`fetchEvolutionsByRobot for ${robotId} and month ${selectedMonth}`);
   try {
-    const response = await fetch(`/api/sql/data?table=evolutions&robotId=${robotId}&selectedMonth=${selectedMonth}`);
+    // robotId peut être le nom du robot ou la clé composite AGENCE_NOM (selon usage)
+    const encodedRobot = encodeURIComponent(robotId);
+    const url = `/api/sql?table=Evolutions&robot=${encodedRobot}&selectedMonth=${encodeURIComponent(selectedMonth)}`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    return data.map((doc: any) => ({
-      id: doc.ID,
-      Robot: doc.ROBOT,
-      statut: doc.STATUT || 1,
-      'Date de la demande': doc.DATE_MAJ ? new Date(doc.DATE_MAJ).toLocaleDateString('fr-FR') : '',
-      ...doc
-    }));
+
+    const results = data.map((doc: any) => {
+      const rawDateStr = doc.DATE_MAJ ? String(doc.DATE_MAJ) : null;
+      return {
+        id: doc.ID,
+        Intitulé: doc.INTITULE || '',
+        Description: doc.DESCRIPTION || '',
+        Robot: doc.ROBOT || '',
+        Statut: (doc.STATUT !== undefined && doc.STATUT !== null) ? String(doc.STATUT) : '1',
+        Nb_operations_mensuelles: doc.NB_OPERATIONS_MENSUELLES ?? '',
+        Temps_consommé: doc.TEMPS_CONSOMME ?? '',
+        Date: rawDateStr || (doc.DATE_MAJ ? String(doc.DATE_MAJ) : ''),
+        DATE_MAJ_RAW: rawDateStr,
+        ...doc
+      };
+    });
+
+    const getTimestamp = (s: string | null) => {
+      if (!s) return 0;
+      const dmy = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+      if (dmy) {
+        const day = parseInt(dmy[1], 10);
+        const month = parseInt(dmy[2], 10) - 1;
+        const year = parseInt(dmy[3], 10);
+        return new Date(year, month, day).getTime();
+      }
+      const t = Date.parse(s);
+      return isNaN(t) ? 0 : t;
+    };
+
+    // Trier par date descendante
+    results.sort((a: any, b: any) => {
+      const da = getTimestamp(a.DATE_MAJ_RAW);
+      const db = getTimestamp(b.DATE_MAJ_RAW);
+      return db - da;
+    });
+
+    return results;
   } catch (error) {
     console.log('Error fetching evolutions by Robot:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches evolution documents for a given agency via the API.
+ * Returns all evolutions for robots associated with the agency.
+ * @param agency The agency code to fetch evolutions for.
+ */
+export async function fetchEvolutionsByAgency(agency: string, selectedMonth: string = 'N'): Promise<Evolution[]> {
+  console.log(`fetchEvolutionsByAgency for ${agency} and month ${selectedMonth}`);
+  try {
+    const encodedAgency = encodeURIComponent(agency);
+    const url = `/api/sql?table=Evolutions&agency=${encodedAgency}&selectedMonth=${encodeURIComponent(selectedMonth)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+
+    const results = data.map((doc: any) => {
+      const rawDateStr = doc.DATE_MAJ ? String(doc.DATE_MAJ) : null;
+      return {
+        id: doc.ID,
+        Intitulé: doc.INTITULE || '',
+        Description: doc.DESCRIPTION || '',
+        Robot: doc.ROBOT || '',
+        Statut: (doc.STATUT !== undefined && doc.STATUT !== null) ? String(doc.STATUT) : '1',
+        Nb_operations_mensuelles: doc.NB_OPERATIONS_MENSUELLES ?? '',
+        Temps_consommé: doc.TEMPS_CONSOMME ?? '',
+        Date: rawDateStr || (doc.DATE_MAJ ? String(doc.DATE_MAJ) : ''),
+        DATE_MAJ_RAW: rawDateStr,
+        ...doc
+      };
+    });
+
+    const getTimestamp = (s: string | null) => {
+      if (!s) return 0;
+      const dmy = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+      if (dmy) {
+        const day = parseInt(dmy[1], 10);
+        const month = parseInt(dmy[2], 10) - 1;
+        const year = parseInt(dmy[3], 10);
+        return new Date(year, month, day).getTime();
+      }
+      const t = Date.parse(s);
+      return isNaN(t) ? 0 : t;
+    };
+
+    // Trier par date descendante
+    results.sort((a: any, b: any) => {
+      const da = getTimestamp(a.DATE_MAJ_RAW);
+      const db = getTimestamp(b.DATE_MAJ_RAW);
+      return db - da;
+    });
+
+    return results;
+  } catch (error) {
+    console.log('Error fetching evolutions by Agency:', error);
     return [];
   }
 }
