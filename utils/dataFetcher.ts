@@ -53,7 +53,7 @@ interface Evolution {
  * @returns Promise<Evolution[]> - Tableau des évolutions filtrées
  */
 export async function fetchAllEvolutions(): Promise<Evolution[]> {
-  console.log('fetchAllEvolutions');
+  //console.log('fetchAllEvolutions');
   try {
     // Appel de l'API centrale (utiliser le nom de table tel que whitelisté côté serveur)
     const response = await fetch('/api/sql?table=Evolutions');

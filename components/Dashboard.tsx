@@ -149,7 +149,7 @@ export default function Dashboard() {
   // Initialisation des données (utilisateur, agences, robots, reporting)
   // ------------------------------------------------------------------
   const initialized = useRef(false);
-  const isInitialMount = useRef(true);
+  //const isInitialMount = useRef(true);
 
   useEffect(() => {
     //console.log('(Dashboard) -userName:', userName, ' -userId:', userId, ' -userAgenceIds:', userAgenceIds);  
@@ -439,8 +439,8 @@ useEffect(() => {
       }
 
       // DEBUG: journaliser les résultats reçus avant affectation
-      console.log('[Dashboard] loadEvolutionsForTable - received count:', evoData?.length ?? 0);
-      console.log('[Dashboard] loadEvolutionsForTable - sample first 5:', (evoData || []).slice(0, 5));
+      //console.log('[Dashboard] loadEvolutionsForTable - received count:', evoData?.length ?? 0);
+      //console.log('[Dashboard] loadEvolutionsForTable - sample first 5:', (evoData || []).slice(0, 5));
 
       setHistoriqueData(evoData);
     } catch (err) {

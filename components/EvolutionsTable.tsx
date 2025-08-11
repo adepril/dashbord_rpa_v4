@@ -132,7 +132,11 @@ export default function EvolutionsTable({robot, data, typeGain, useChart4All, us
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
+          {robot != 'TOUT' ? (  
           <h2 className="text-2xl font-bold">Evolutions du robot</h2>
+          ) : (
+          <h2 className="text-2xl font-bold">Evolutions des robots</h2>
+          )}
           {robot != 'TOUT' && (  
           <button onClick={handleOpenForm_Evolution}
             className="bg-neutral-950 text-neutral-100 border border-neutral-400 border-b-4 font-medium overflow-hidden relative px-4 py-2 rounded-lg hover:brightness-150 hover:border-t-4 hover:border-b active:opacity-75 outline-none duration-300 group">
@@ -192,8 +196,11 @@ export default function EvolutionsTable({robot, data, typeGain, useChart4All, us
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center h-[40px]">
-        <h2 className="text-2xl font-bold">Evolutions du robot</h2>
-
+         {robot != 'TOUT' ? (  
+          <h2 className="text-2xl font-bold">Evolutions du robot</h2>
+          ) : (
+          <h2 className="text-2xl font-bold">Evolutions des robots</h2>
+          )}
         {robot != 'TOUT' && (  
         <button onClick={handleOpenForm_Evolution}
           className="bg-neutral-950 text-neutral-100 border border-neutral-400 border-b-4 font-medium overflow-hidden relative px-4 py-2 rounded-lg hover:brightness-150 hover:border-t-4 hover:border-b active:opacity-75 outline-none duration-300 group">
