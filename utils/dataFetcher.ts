@@ -173,7 +173,7 @@ export async function fetchEvolutionsByRobot(robotId: string, selectedMonth: str
  * @param agency The agency code to fetch evolutions for.
  */
 export async function fetchEvolutionsByAgency(agency: string, selectedMonth: string = 'N'): Promise<Evolution[]> {
-  console.log(`fetchEvolutionsByAgency for ${agency} and month ${selectedMonth}`);
+  //console.log(`fetchEvolutionsByAgency for ${agency} and month ${selectedMonth}`);
   try {
     const encodedAgency = encodeURIComponent(agency);
     const url = `/api/sql?table=Evolutions&agency=${encodedAgency}&selectedMonth=${encodeURIComponent(selectedMonth)}`;

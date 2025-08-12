@@ -36,6 +36,8 @@ import {
 export interface Agency {
   codeAgence: string;
   libelleAgence?: string;
+  isSelectable?: boolean; // Indique si l'agence est sélectionnable dans l'UI
+  //hasReportingData?: boolean; // Indique si l'agence a des données de reporting
 }
 
 /**
@@ -119,6 +121,23 @@ export async function loadAllAgencies(): Promise<void> {
 }
 
 /**
+ * updateAgencySelectability
+ * -------------------------------------------------------------------
+ * Description :
+ *  - Met à jour l'attribut `isSelectable` de chaque agence dans `cachedAllAgencies`
+ *    en fonction de la liste des `userAgenceIds`.
+ *
+ * Entrée :
+ *  - userAgenceIds: string[] - La liste des IDs d'agences autorisées pour l'utilisateur.
+ * Sortie : void
+ */
+export function updateAgencySelectability(userAgenceIds: string[]): void {
+  cachedAllAgencies.forEach(agency => {
+    agency.isSelectable = userAgenceIds.includes(agency.codeAgence) || agency.codeAgence === 'TOUT';
+  });
+}
+
+/**
  * loadAllServices
  * -------------------------------------------------------------------
  * Description :
@@ -189,7 +208,7 @@ export async function loadAllRobots(): Promise<void> {
       (r) => (r.robot ?? '').toUpperCase() !== 'TOUT' && (r.id_robot ?? '').toUpperCase() !== 'TOUT'
     );
 
-    console.log('Robots chargés en cache:', cachedRobotsFromTableBaremeReport);
+    //console.log('Robots chargés en cache:', cachedRobotsFromTableBaremeReport);
   } catch (error) {
     console.log('Erreur lors du chargement des robots:', error);
     throw error;
@@ -404,20 +423,6 @@ export function getReportingData(month: string): ReportingEntry[] {
  * de cachedReportingData (currentMonth, N-1, N-2, N-3).
  * - 'TOUT' est toujours considéré comme présent.
  */
-export function isAgencyInReportingData(agencyCode: string): boolean {
-  if (!agencyCode) return false;
-  if (agencyCode === 'TOUT') return true;
-
-  const allReportingEntries = [
-    ...cachedReportingData.currentMonth,
-    ...cachedReportingData.prevMonth1,
-    ...cachedReportingData.prevMonth2,
-    ...cachedReportingData.prevMonth3
-  ];
-
-  // NB: Les clés des colonnes peuvent être 'AGENCE' (selon la source).
-  return allReportingEntries.some((entry: ReportingEntry) => entry.AGENCE === agencyCode);
-}
 
 
 
@@ -526,14 +531,14 @@ export async function initializeRobots4Agencies(): Promise<void> {
     ];
 
     // Extraire les codes d'agence uniques
-    const agencyCodes = new Set<string>();
+    const agencyCodeInReporting = new Set<string>();
     allReportingEntries.forEach((entry: ReportingEntry) => {
       if (entry.AGENCE && entry.AGENCE !== 'TOUT') {
-        agencyCodes.add(entry.AGENCE);
+        agencyCodeInReporting.add(entry.AGENCE.replace(" ","_").toUpperCase());
       }
     });
 
-    console.log('Agences trouvées dans les données de reporting:', Array.from(agencyCodes));
+    console.log('(dataStore - initializeRobots4Agencies) Agences trouvées dans les données de reporting (cachedReportingData):', Array.from(agencyCodeInReporting));
 
     // Filtrer les robots pour ne garder que ceux des agences présentes dans le reporting
     const filteredRobots = cachedRobotsFromTableBaremeReport.filter(robot => {
@@ -543,7 +548,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
       }
       
       // Sinon, on vérifie si l'agence est dans notre liste
-      return agencyCodes.has(robot.agence);
+      return agencyCodeInReporting.has(robot.agence);
     });
 
     // Enrichir chaque robot avec le libellé d'agence (agenceLbl)
@@ -558,8 +563,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
     // Mettre à jour cachedRobots4Agencies
     cachedRobots4Agencies = withLabels;
     
-    console.log('Robots filtrés pour les agences du reporting:', cachedRobots4Agencies.length);
-    console.log('cachedRobots4Agencies initialisé avec succès (agenceLbl résolu)');
+    console.log('Robots filtrés pour les agences du reporting:', cachedRobots4Agencies);
     
     // Notifier les abonnés du changement
     notifyRobotDataListeners();

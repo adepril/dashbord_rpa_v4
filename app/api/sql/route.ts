@@ -77,15 +77,15 @@ export async function GET(request: NextRequest) {
                 result = await executeQuery(query);
                 return NextResponse.json(result.recordset);
 
-            case 'UtilisateursV2':
-                const userId = url.searchParams.get('userId');
-                query = `SELECT [ID],[USER_NAME],[EMAIL],[USER_SERVICE],[AGENCE_BBLBRI],[AGENCE_TIF69],[AGENCE_TOUTES],[USER_AGENCE_IDS] FROM [BD_RPA_TEST].[dbo].[UtilisateursV2] WHERE 1=1`;
-                if (userId) {
-                    query += ` AND [ID] = @userId`;
-                    params.push({ name: 'userId', type: sql.NVarChar(50), value: userId });
-                }
-                result = await executeQuery(query, params);
-                return NextResponse.json(result.recordset);
+            // case 'UtilisateursV2':
+            //     const userId = url.searchParams.get('userId');
+            //     query = `SELECT [ID],[USER_NAME],[EMAIL],[USER_SERVICE],[AGENCE_BBLBRI],[AGENCE_TIF69],[AGENCE_TOUTES],[USER_AGENCE_IDS] FROM [BD_RPA_TEST].[dbo].[UtilisateursV2] WHERE 1=1`;
+            //     if (userId) {
+            //         query += ` AND [ID] = @userId`;
+            //         params.push({ name: 'userId', type: sql.NVarChar(50), value: userId });
+            //     }
+            //     result = await executeQuery(query, params);
+            //     return NextResponse.json(result.recordset);
 
             case 'AgencesV2':
                 const agenceName = url.searchParams.get('agenceName'); // For filtering by agency name

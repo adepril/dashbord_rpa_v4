@@ -33,29 +33,30 @@ export async function POST(request: NextRequest) {
     if (result.recordset.length > 0) {
       // Traitement des USER_AGENCE_IDS (supposé être une chaîne séparée par des virgules)
       const user = result.recordset[0];
-      //console.log('User object from DB:', user); // Ajout du log pour le débogage
+      console.log('User object from DB:', user); // Ajout du log pour le débogage
       // Retourner les données utilisateur
       const agenceIds: string[] = [];
-      if (user.AGENCE_BBLBRI.toLowerCase() === "oui") agenceIds.push('BBLBRI');
+      
       if (user.AGENCE_TIF69.toLowerCase() === "oui") agenceIds.push('TIF69');
-      if (user.AGENCE_TIF93.toLowerCase() === "oui") agenceIds.push('IF93');
-      if (user.AGENCE_BBL.toLowerCase() === "oui") agenceIds.push('BBL');
+      if (user.AGENCE_TIF93.toLowerCase() === "oui") agenceIds.push('TIF93');
       if (user.AGENCE_MABBLCASA.toLowerCase() === "oui") agenceIds.push('MABBLCASA');
-      if (user.AGENCE_BBLVIL.toLowerCase() === "oui") agenceIds.push('BBLVIL');
       if (user.AGENCE_MARICHAL93.toLowerCase() === "oui") agenceIds.push('MARICHAL93');
-      if (user.AGENCE_BBL_CARGO.toLowerCase() === "oui") agenceIds.push('BBL_CARGO');
-      if (user.AGENCE_BBLPRO.toLowerCase() === "oui") agenceIds.push('BBLPRO');
       if (user.AGENCE_CHARVIN.toLowerCase() === "oui") agenceIds.push('CHARVIN');
+      if (user.AGENCE_CHARVIN_LOGISTIQUES.toLowerCase() === "oui") agenceIds.push('CHARVIN_LOGISTIQUES');
+      if (user.AGENCE_CHAB9.toLowerCase() === "oui") agenceIds.push('CHAB9');
+      if (user.AGENCE_BBL.toLowerCase() === "oui") agenceIds.push('BBL');
       if (user.AGENCE_BBLPAU.toLowerCase() === "oui") agenceIds.push('BBLPAU');
       if (user.AGENCE_BBLLIL.toLowerCase() === "oui") agenceIds.push('BBLLIL');
+      if (user.AGENCE_BBLVIL.toLowerCase() === "oui") agenceIds.push('BBLVIL');
       if (user.AGENCE_BBLSIEGE.toLowerCase() === "oui") agenceIds.push('BBLSIEGE');
       if (user.AGENCE_BBLSQF.toLowerCase() === "oui") agenceIds.push('BBLSQF');
-      if (user.AGENCE_CHARVIN_LOGISTIQUES.toLowerCase() === "oui") agenceIds.push('CHARVIN_LOGISTIQUES');
+      if (user.AGENCE_BBL_CARGO.toLowerCase() === "oui") agenceIds.push('BBL_CARGO');
+      if (user.AGENCE_BBLPRO.toLowerCase() === "oui") agenceIds.push('BBLPRO');
       if (user.AGENCE_BBLIDF.toLowerCase() === "oui") agenceIds.push('BBLIDF');
       if (user.AGENCE_BBLSOA.toLowerCase() === "oui") agenceIds.push('BBLSOA');
       if (user.AGENCE_BBLRMB.toLowerCase() === "oui") agenceIds.push('BBLRMB');
       if (user.AGENCE_BBLPCS.toLowerCase() === "oui") agenceIds.push('BBLPCS');
-      if (user.AGENCE_CHAB9.toLowerCase() === "oui") agenceIds.push('CHAB9');
+      if (user.AGENCE_BBLBRI.toLowerCase() === "oui") agenceIds.push('BBLBRI');
       if (user.AGENCE_BBLFIN.toLowerCase() === "oui") agenceIds.push('BBLFIN');
       if (user.AGENCE_BBLREN.toLowerCase() === "oui") agenceIds.push('BBLREN');
       if (user.AGENCE_BBLMPL.toLowerCase() === "oui") agenceIds.push('BBLMPL');

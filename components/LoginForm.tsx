@@ -65,6 +65,13 @@ export default function LoginForm() {
             console.log('(LoginForm) User data from request response:', userData);
             // updateFirstLoginStatus();
 
+            // Nettoyer toutes les données précédentes avant de stocker les nouvelles
+            localStorage.removeItem('userData');
+            localStorage.removeItem('cachedAgencies');
+            localStorage.removeItem('cachedRobotsFromTableBaremeReport');
+            localStorage.removeItem('cachedReportingData');
+            localStorage.removeItem('cachedServices');
+
             // Stocker les informations de l'utilisateur dans localStorage
             localStorage.setItem('userData', JSON.stringify(userData.userData));
 

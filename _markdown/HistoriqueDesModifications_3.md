@@ -214,5 +214,37 @@ const safeParseDate = (dateStr: string): string | null => {
 
 
 
+## 2025-08-12 - Amélioration de la sélection des agences
 
+### Contexte
+Correction d'un problème où des agences non autorisées par l'utilisateur étaient cliquables dans le sélecteur d'agences. La logique de grisement a été modifiée pour se baser uniquement sur les droits de l'utilisateur (`userAgenceIds`), et non plus sur la présence de données de reporting.
 
+### Modifications techniques
+
+#### 1. Modification de `utils/dataStore.ts`
+- **Interface `Agency`**: L'attribut `isSelectable?: boolean;` a été confirmé et est utilisé pour indiquer si une agence est sélectionnable.
+- **Ajout de la fonction `updateAgencySelectability(userAgenceIds: string[])`**: Cette fonction parcourt `cachedAllAgencies` et met à jour l'attribut `isSelectable` de chaque agence à `true` si son `codeAgence` est présent dans `userAgenceIds` (ou si c'est l'agence "TOUT"), et `false` sinon.
+- **Suppression de la fonction `isAgencyInReportingData`**: Cette fonction n'est plus nécessaire pour la logique de grisement des agences et a été supprimée.
+
+#### 2. Modification de `components/AgencySelector.tsx`
+- L'importation de `isAgencyInReportingData` a été supprimée.
+- La propriété `disabled` de `SelectItem` utilise maintenant `!agency.isSelectable` pour déterminer si l'agence doit être grisée.
+
+#### 3. Modification de `components/Dashboard.tsx`
+- L'importation de `updateAgencySelectability` a été ajoutée.
+- Dans le `useEffect` d'initialisation (`loadInitialData`), après le chargement des agences (`loadAllAgencies()`), la fonction `updateAgencySelectability(userAgenceIds)` est appelée pour mettre à jour l'état de sélection des agences.
+- La dépendance `userAgenceIds` a été ajoutée au `useEffect` pour s'assurer que l'initialisation se déclenche une fois les droits de l'utilisateur disponibles.
+
+### Impact des modifications
+- Les agences dans le sélecteur sont maintenant grisées correctement, ne permettant la sélection que des agences autorisées par l'utilisateur.
+- La logique de sélection est simplifiée et plus conforme aux exigences de sécurité.
+
+### Fichiers modifiés
+- `utils/dataStore.ts`
+- `components/AgencySelector.tsx`
+- `components/Dashboard.tsx`
+
+### Tests effectués
+- Vérification du comportement de grisement des agences avec différents `userAgenceIds`.
+- S'assurer que seules les agences autorisées sont cliquables.
+- Vérifier que l'agence "TOUT" reste sélectionnable.

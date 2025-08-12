@@ -18,22 +18,21 @@ import { fetchAllEvolutions, fetchEvolutionsByRobot, fetchEvolutionsByAgency, fo
 
 import {
   initializeReportingData,
-  initializeRobots4Agencies, // Importation ajoutée pour initialiser les robots des agences présentes dans le reporting
-  //getCachedAgencies,
-  getCachedAllAgencies, // Ajouté pour accéder aux toutes agences
-  loadAllServices, // Importation ajoutée
-  loadAllRobots, // Importation ajoutée
-  cachedServices, // Importation ajoutée
-  cachedRobotsFromTableBaremeReport, // Importation ajoutée
+  initializeRobots4Agencies,
+  getCachedAllAgencies,
+  loadAllServices,
+  loadAllRobots,
+  cachedServices,
+  cachedRobotsFromTableBaremeReport,
   Agency,
   Robot,
-  //isDataInitialized,
   resetCache,
   isFirstLoginSession,
   setUpdateRobotsCallback,
   getReportingData,
   ReportingEntry,
   loadAllAgencies,
+  updateAgencySelectability, // Nouvelle importation
   cachedReportingData,
   getMonthLabelCurrentMonth,
   getMonthLabelPrevMonth1,
@@ -94,8 +93,8 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   // États pour divers paramètres et données
   // ------------------------------------------------------------------
-  const [showAllRobots, setShowAllRobots] = useState(isFirstLoginSession());
-  const [agencies, setAgencies] = useState<Agency[]>([]);
+  //const [showAllRobots, setShowAllRobots] = useState(isFirstLoginSession());
+  const [allAgencies, setAllAgencies] = useState<Agency[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>('N'); // 'N', 'N-1', 'N-2', 'N-3'
   const [userData, setUserData] = useState<any>(null);
   
@@ -111,7 +110,7 @@ export default function Dashboard() {
   const [availableServices, setAvailableServices] = useState<Set<string>>(new Set(cachedServices));
   const [robots, setRobots] = useState<Robot[]>(cachedRobotsFromTableBaremeReport);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
-  const [selectedRobotData, setSelectedRobotData] = useState<Robot | null>(null);
+  const [selectedRobotDataFromBareme, setSelectedRobotDataFromBareme] = useState<Robot | null>(null);
   const [historiqueData, setHistoriqueData] = useState<any[]>([]);
   const [robotData, setRobotData] = useState<any>(null);
   const [robotDataForBarChart, setRobotDataForBarChart] = useState<any>(null);
@@ -136,7 +135,7 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   useEffect(() => {
     const storedUserData = localStorage.getItem('userData');
-    //console.log('Dashboard - storedUserData:', storedUserData);
+    console.log('Dashboard - storedUserData:', storedUserData);
     if (storedUserData) {
       setUserData(JSON.parse(storedUserData));
     } else {
@@ -154,33 +153,41 @@ export default function Dashboard() {
   useEffect(() => {
     //console.log('(Dashboard) -userName:', userName, ' -userId:', userId, ' -userAgenceIds:', userAgenceIds);  
     //console.log('isDataInitialized:', isDataInitialized());
-    if (!initialized.current && userId) {
+    if (!initialized.current && userId && userAgenceIds.length > 0) { // S'assurer que userAgenceIds est disponible
       initialized.current = true;
 
       const loadInitialData = async () => {
         try {
           setIsLoading(true);
 
-          // Étape 1: Charger toutes les données nécessaires dans le cache de manière séquentielle
+          // Étape 1: Charger les données de reporting pour 4 mois
+          await initializeReportingData();
+          //console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
+          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
+          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
+          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
+
+          // Étape 2: Charger toutes les agences
           await loadAllAgencies();
+          
+          // Mettre à jour l'attribut isSelectable des agences en fonction des droits de l'utilisateur
+          updateAgencySelectability(userAgenceIds);
 
-          //console.log('(Dashboard) Toutes les agences chargées en cache:', getCachedAllAgencies());
-          // Une fois les données mises en cache, les récupérer et définir l'état du composant
-          const userAgencies = getCachedAllAgencies();
-          setAgencies(userAgencies);
-          //console.log('(Dashboard) initializeReportingData - Agences récupérées (userAgencies):', userAgencies);
-
-          // Définir l'agence par défaut
-          const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
+          const AllAgencies = getCachedAllAgencies();
+          setAllAgencies(AllAgencies);
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Toutes les Agences récupérées :', AllAgencies);
+          
+          // Définir l'agence par défaut (la première sélectionnable ou 'TOUT')
+          const defaultAgency = AllAgencies.find(a => a.isSelectable) || AllAgencies.find(a => a.codeAgence === 'TOUT') || AllAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
-          //console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
+          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
 
-          // Étape 2: Charger tous les robots
+          // Étape 3: Charger tous les robots
           await loadAllRobots();
           console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
           setRobots(cachedRobotsFromTableBaremeReport);
 
-          //Etape 3: Charger les services de la table 'Services'
+          //Etape 4: Charger les services de la table 'Services'
           await loadAllServices();
           //console.log('Tous les services chargés en cache:', cachedServices);
           setAvailableServices(new Set(cachedServices));
@@ -191,13 +198,6 @@ export default function Dashboard() {
           setSelectedMonth('N'); // Réinitialiser le mois sélectionné à 'N'
           //console.log('(Dashboard / initializeReportingData) loadInitialData - Mois sélectionné:', selectedMonth);
 
-          // Étape 4: Charger les données de reporting pour 4 mois
-          await initializeReportingData();
-          //console.log('(Dashboard) initializeReportingData - cachedReportingData.currentMonth:', cachedReportingData.currentMonth);
-          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth1:', cachedReportingData.prevMonth1);
-          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth2:', cachedReportingData.prevMonth2);
-          // console.log('(Dashboard) initializeReportingData - cachedReportingData.prevMonth3:', cachedReportingData.prevMonth3);
-
           // Étape 5: Initialiser les robots pour les agences présentes dans le reporting
           await initializeRobots4Agencies();
 
@@ -207,8 +207,8 @@ export default function Dashboard() {
             setRobots(robots);
           });
 
-          //selectedRobotData = 'TOUT' => 'Char4All.tsx'
-          setSelectedRobotData(TOUT_ROBOT);
+          //selectedRobotDataFromBareme = 'TOUT' => 'Char4All.tsx'
+          setSelectedRobotDataFromBareme(TOUT_ROBOT);
           
         } catch (error) {
           console.error('Erreur lors du chargement des données initiales:', error);
@@ -224,7 +224,7 @@ export default function Dashboard() {
     return () => {
       resetCache();
     };
-  }, [userId]);
+  }, [userId, userAgenceIds]); // Ajouter userAgenceIds aux dépendances
 
 
   // ------------------------------------------------------------------
@@ -232,17 +232,8 @@ export default function Dashboard() {
   // ------------------------------------------------------------------
   useEffect(() => {
     const loadRobotData = async () => {
-      // Typage explicite des dépendances
-      // Add a guard for selectedRobotData itself to prevent potential null access errors
-      if (!selectedRobotData) {
-        console.log('[Dashboard] loadRobotData - selectedRobotData is null, skipping data loading.');
-        // Reset relevant states if selectedRobotData is null
-        setRobotData(null);
-        setRobotDataForBarChart(null);
-        setUseChart4All(false);
-        return; // Exit the function early
-      }
-      const currentRobot: Robot | null = selectedRobotData;
+      console.log('[Dashboard] loadRobotData - selectedRobotDataFromBareme:', selectedRobotDataFromBareme);
+      const currentRobot: Robot | null = selectedRobotDataFromBareme;
       const currentMonth: string = selectedMonth;
       //console.log(`[Dashboard] loadRobotData - currentRobot:`, currentRobot, `- selectedMonth: ${currentMonth}`);
 
@@ -250,7 +241,7 @@ export default function Dashboard() {
       if (currentRobot.robot === 'TOUT') {
         // ****** Préparation des données pour Chart4All.tsx (agrégation par agence sélectionnée) ******
         const activeAgency = selectedAgency?.codeAgence || 'TOUT';
-        //console.log('[Dashboard] loadRobotData(TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency);
+        console.log('[Dashboard] loadRobotData(TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency);
 
         // Filtrer la liste des robots selon l'agence active
         const robotsFiltered = robots.filter(r => r.robot && r.robot !== 'TOUT' && (activeAgency === 'TOUT' ? true : r.agence === activeAgency));
@@ -342,25 +333,25 @@ export default function Dashboard() {
       } else {
         // ***************** Préparation des données pour Chart.tsx ************************
         setUseChart4All(false);
-        const tpsParUnit = selectedRobotData?.temps_par_unite === '0' ? '0' : selectedRobotData?.temps_par_unite;
+        const tpsParUnit = selectedRobotDataFromBareme?.temps_par_unite === '0' ? '0' : selectedRobotDataFromBareme?.temps_par_unite;
 
         const robotEntry = (() => {
           switch(selectedMonth) {
             case 'N':
               return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
             case 'N-1':
               return cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
             case 'N-2':
               return cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
             case 'N-3':
               return cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
             default:
               return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
           }
         })();
 
@@ -368,16 +359,16 @@ export default function Dashboard() {
           // Résoudre le libellé d'agence à partir du cache des agences
           const allAgencies = getCachedAllAgencies();
           const resolvedAgenceLbl =
-            selectedRobotData?.agenceLbl ||
-            allAgencies.find(a => a.codeAgence === selectedRobotData?.agence)?.libelleAgence ||
-            selectedRobotData?.agence;
+            selectedRobotDataFromBareme?.agenceLbl ||
+            allAgencies.find(a => a.codeAgence === selectedRobotDataFromBareme?.agence)?.libelleAgence ||
+            selectedRobotDataFromBareme?.agence;
 
           const processedData = {
             ...robotEntry,
             'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
               ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
               : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), // Correction ici
-            ...selectedRobotData,
+            ...selectedRobotDataFromBareme,
             agenceLbl: resolvedAgenceLbl
           };
           setRobotData(processedData);
@@ -388,13 +379,13 @@ export default function Dashboard() {
         }
 
         const currentMonthData = cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
         const prevMonth1Data = cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
         const prevMonth2Data = cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
         const prevMonth3Data = cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotData?.agence}_${selectedRobotData?.robot}`);
+          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
 
         setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
         setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
@@ -406,7 +397,7 @@ export default function Dashboard() {
   };
 
   loadRobotData();
-}, [selectedRobotData, selectedMonth, robots, selectedAgency]);
+}, [selectedRobotDataFromBareme, selectedMonth, robots, selectedAgency]);
 
 
     // ------------------------------------------------------------------
@@ -421,7 +412,7 @@ useEffect(() => {
   const loadEvolutionsForTable = async () => {
     try {
       let evoData: any[] = [];
-      const robotName = selectedRobot?.robot || selectedRobotData?.robot || '';
+      const robotName = selectedRobot?.robot || selectedRobotDataFromBareme?.robot || '';
       const agencyCode = selectedAgency?.codeAgence || 'TOUT';
 
       if (robotName && robotName !== 'TOUT') {
@@ -450,11 +441,11 @@ useEffect(() => {
   };
 
   loadEvolutionsForTable();
-}, [selectedRobot, selectedRobotData, selectedAgency, selectedMonth, robots]);
+}, [selectedRobot, selectedRobotDataFromBareme, selectedAgency, selectedMonth, robots]);
     // Gestion du changement d'agence
     // ------------------------------------------------------------------
     const handleAgencyChange = (agencyCode: string) => {
-      const agencySelected = agencies.find(a => a.codeAgence === agencyCode);
+      const agencySelected = allAgencies.find(a => a.codeAgence === agencyCode);
       console.log('--- AGENCY CHANGE BEGIN ---');
       console.log('Agence choisie:', agencySelected);
     
@@ -471,12 +462,12 @@ useEffect(() => {
         };
         //console.log('[Dashboard] handleAgencyChange - Forcing TOUT Robot for agency:', TOUT_FOR_AGENCY);
         setSelectedRobot(TOUT_FOR_AGENCY);
-        setSelectedRobotData(TOUT_FOR_AGENCY);
+        setSelectedRobotDataFromBareme(TOUT_FOR_AGENCY);
         // On peut aussi réinitialiser le mois sur 'N' si souhaité (optionnel)
         // setSelectedMonth('N');
       }
     
-      console.log('--- AGENCY CHANGE END ---');
+      //console.log('--- AGENCY CHANGE END ---');
     };
 
     // ------------------------------------------------------------------
@@ -498,7 +489,7 @@ useEffect(() => {
         };
         //console.log('[Dashboard] handleRobotChange - Switching to TOUT for agency:', TOUT_FOR_AGENCY);
         setSelectedRobot(TOUT_FOR_AGENCY);
-        setSelectedRobotData(TOUT_FOR_AGENCY);
+        setSelectedRobotDataFromBareme(TOUT_FOR_AGENCY);
         //console.log('--- END ROBOT CHANGE (TOUT) ---');
         return;
       }
@@ -506,7 +497,7 @@ useEffect(() => {
       const robot = robots.find(r => r.id_robot === robotID);
       if (robot && selectedAgency) {
         setSelectedRobot(robot);
-        setSelectedRobotData(robot);
+        setSelectedRobotDataFromBareme(robot);
       } else {
         console.log('Robot ou agence non trouvé');
       }
@@ -592,7 +583,7 @@ useEffect(() => {
                 <div className="flex items-center space-x-2">
                   <span>Agence:</span>
                   <AgencySelector
-                    agencies={agencies}
+                    agencies={allAgencies}
                     selectedAgencyId={selectedAgency?.codeAgence || ''}
                     onAgencyChange={handleAgencyChange}
                   />
