@@ -101,7 +101,7 @@ export let cachedServices: string[] = [];
 export async function loadAllAgencies(): Promise<void> {
   try {
     // Récupérer toutes les agences puis filtrer
-    const response = await fetch('/api/sql?table=AgencesV2');
+    const response = await fetch('/api/sql?table=Agences');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

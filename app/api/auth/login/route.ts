@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         [AGENCE_BBLLRY], [AGENCE_BLRSTJ], [AGENCE_BBL_SERVICES], [AGENCE_BBLTLS],
         [AGENCE_BBLTUF], [AGENCE_BBLNTE], [AGENCE_BELLEREAUX], [AGENCE_BBLBRU],
         [AGENCE_TOUTES], [USER_SERVICE]
-      FROM [BD_RPA_TEST].[dbo].[UtilisateursV2]
+      FROM [BD_RPA_TEST].[dbo].[Utilisateurs]
       WHERE [USER_NAME] = @username AND [USER_PASSWORD] = @password
     `, [
       { name: 'username', type: sql.NVarChar(50), value: USER_NAME },

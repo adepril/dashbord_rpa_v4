@@ -9,8 +9,8 @@ const ALLOWED_TABLES = [
     'Citations',
     'Services',
     'Statuts',
-    'UtilisateursV2',
-    'AgencesV2',
+    'Utilisateurs',
+    'Agences',
     'Evolutions',
     'Barem_Reporting'
 ];
@@ -77,9 +77,9 @@ export async function GET(request: NextRequest) {
                 result = await executeQuery(query);
                 return NextResponse.json(result.recordset);
 
-            // case 'UtilisateursV2':
+            // case 'Utilisateurs':
             //     const userId = url.searchParams.get('userId');
-            //     query = `SELECT [ID],[USER_NAME],[EMAIL],[USER_SERVICE],[AGENCE_BBLBRI],[AGENCE_TIF69],[AGENCE_TOUTES],[USER_AGENCE_IDS] FROM [BD_RPA_TEST].[dbo].[UtilisateursV2] WHERE 1=1`;
+            //     query = `SELECT [ID],[USER_NAME],[EMAIL],[USER_SERVICE],[AGENCE_BBLBRI],[AGENCE_TIF69],[AGENCE_TOUTES],[USER_AGENCE_IDS] FROM [BD_RPA_TEST].[dbo].[Utilisateurs] WHERE 1=1`;
             //     if (userId) {
             //         query += ` AND [ID] = @userId`;
             //         params.push({ name: 'userId', type: sql.NVarChar(50), value: userId });
@@ -87,9 +87,9 @@ export async function GET(request: NextRequest) {
             //     result = await executeQuery(query, params);
             //     return NextResponse.json(result.recordset);
 
-            case 'AgencesV2':
+            case 'Agences':
                 const agenceName = url.searchParams.get('agenceName'); // For filtering by agency name
-                query = `SELECT [CODE_AGENCE],[LIBELLE_AGENCE] FROM [BD_RPA_TEST].[dbo].[AgencesV2] WHERE 1=1`;
+                query = `SELECT [CODE_AGENCE],[LIBELLE_AGENCE] FROM [BD_RPA_TEST].[dbo].[Agences] WHERE 1=1`;
                 if (agenceName) {
                     query += ` AND [CODE_AGENCE] = @agenceName`;
                     params.push({ name: 'agenceName', type: sql.NVarChar(100), value: agenceName });
