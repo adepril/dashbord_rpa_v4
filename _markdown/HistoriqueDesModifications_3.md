@@ -1,8 +1,6 @@
 # Historique des Modifications
 
 
-
-
 ## 2025-08-11 - Implémentation GET et normalisation des "Evolutions"
 
 Contexte
@@ -210,7 +208,7 @@ const safeParseDate = (dateStr: string): string | null => {
 - Validation que les dates sont correctement parsées et affichées
 - Vérification de l'affichage des données dans l'interface utilisateur
 
-
+---
 
 
 
@@ -250,35 +248,9 @@ Correction d'un problème où des agences non autorisées par l'utilisateur éta
 - Vérifier que l'agence "TOUT" reste sélectionnable.
 
 
-## 2025-08-12 - Filtrage des robots par service
-
-### Contexte
-Le filtrage des robots par service n'était pas fonctionnel. Quand un service était sélectionné dans le `ServiceSelector`, la liste des robots affichée dans le `RobotSelector` ne se mettait pas à jour en conséquence. La tâche était d'implémenter ce tri en se basant sur l'attribut `service` des robots de `cachedRobotsFromTableBaremeReport`. Il était également important que ce filtrage ne s'applique pas si un robot spécifique était déjà sélectionné.
-
-### Modifications techniques
-
-#### 1. Modification de `components/Dashboard.tsx`
-- **Import de `useMemo`**: Ajout de `useMemo` à l'importation de React pour permettre l'optimisation des calculs de la liste des robots à afficher.
-- **Ajout de `robotsToDisplay` avec `useMemo`**: Une nouvelle variable calculée `robotsToDisplay` a été introduite. Cette variable utilise `useMemo` pour filtrer la liste complète des robots (`robots`) en fonction du `selectedService` et du `selectedRobot`.
-   - Si un `selectedRobot` spécifique (différent de "TOUT") est choisi, le filtrage par service est désactivé et tous les robots sont retournés.
-   - Si aucun robot spécifique n'est sélectionné (`selectedRobot.id_robot === 'TOUT'`), la liste des robots est filtrée par `selectedService`. Si `selectedService` est "TOUT", tous les robots sont affichés ; sinon, seuls les robots dont l'attribut `service` correspond au `selectedService` sont affichés.
-- **Mise à jour du `RobotSelector`**: Le composant `RobotSelector` reçoit désormais `robotsToDisplay` au lieu de la liste complète `robots`, assurant que la liste affichée est toujours pertinente au service sélectionné.
-
-### Impact des modifications
-- Le `RobotSelector` affiche désormais une liste de robots filtrée dynamiquement en fonction du service sélectionné par l'utilisateur.
-- Le filtrage est désactivé lorsque l'utilisateur a sélectionné un robot spécifique, garantissant que la sélection manuelle prime sur le filtrage par service.
-- L'expérience utilisateur est améliorée en fournissant une liste de robots plus pertinente et plus facile à naviguer.
-
-### Fichiers modifiés
-- `components/Dashboard.tsx`
-
-### Tests effectués
-- Vérification du filtrage des robots lorsque "TOUT" est sélectionné comme service.
-- Vérification du filtrage des robots lorsque un service spécifique est sélectionné.
-- Vérification que le filtrage par service est ignoré lorsqu'un robot spécifique est sélectionné.
-- S'assurer que le changement de service met à jour correctement la liste des robots.
-
 ---
+
+
 
 ## 2025-08-13 - Filtrage des robots par service et synchronisation des sélecteurs
 
