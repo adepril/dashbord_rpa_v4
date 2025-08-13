@@ -86,6 +86,7 @@ export let cachedAllAgencies: Agency[] = [];
 // Remove duplicate declaration since it's already declared above
 export let cachedRobots4Agencies: Robot[] = [];
 export let cachedRobotsFromTableBaremeReport: Robot[] = [];
+export let cachedRobots4Carrousel: Robot[] = []; // Nouvelle variable pour le carrousel
 export let cachedServices: string[] = [];
 
 /**
@@ -208,7 +209,13 @@ export async function loadAllRobots(): Promise<void> {
       (r) => (r.robot ?? '').toUpperCase() !== 'TOUT' && (r.id_robot ?? '').toUpperCase() !== 'TOUT'
     );
 
-    //console.log('Robots chargés en cache:', cachedRobotsFromTableBaremeReport);
+    console.log('Robots de la table Barem_Reporting chargés en cache:', cachedRobotsFromTableBaremeReport);
+
+    // Initialiser cachedRobots4Carrousel en filtrant les robots dont type_gain n'est pas 'TEMPS (mn)'
+    cachedRobots4Carrousel = cachedRobotsFromTableBaremeReport.filter(
+      (robot) => robot.type_gain !== 'TEMPS (mn)'
+    );
+    console.log('Robots chargés en cache pour le carrousel:', cachedRobots4Carrousel);
   } catch (error) {
     console.log('Erreur lors du chargement des robots:', error);
     throw error;

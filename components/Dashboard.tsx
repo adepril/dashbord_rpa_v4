@@ -243,10 +243,14 @@ export default function Dashboard() {
         const activeAgency = selectedAgency?.codeAgence || 'TOUT';
         console.log('[Dashboard] loadRobotData(TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency);
 
-        // Filtrer la liste des robots selon l'agence active
-        const robotsFiltered = robots.filter(r => r.robot && r.robot !== 'TOUT' && (activeAgency === 'TOUT' ? true : r.agence === activeAgency));
+        // Filtrer la liste des robots selon l'agence active et ne garder que ceux mesurant un gain de type "temps"
+        const robotsFiltered = robots.filter(r =>
+          r.robot && r.robot !== 'TOUT' &&
+          (activeAgency === 'TOUT' ? true : r.agence === activeAgency) &&
+          (r.type_gain ? String(r.type_gain).toLowerCase().includes('temps') : false)
+        );
         const robotIdsFiltered = new Set(robotsFiltered.map(r => r.id_robot));
-        //console.log('[Dashboard] loadRobotData(TOUT) - robotsFiltered count:', robotsFiltered.length, '- sample ids:', Array.from(robotIdsFiltered).slice(0, 5));
+        //console.log('[Dashboard] loadRobotData(TOUT) - robotsFiltered count (temps only):', robotsFiltered.length, '- sample ids:', Array.from(robotIdsFiltered).slice(0, 5));
 
         // Préparer l'agrégation journalière
         let dailyTotals: number[] = new Array(31).fill(0);

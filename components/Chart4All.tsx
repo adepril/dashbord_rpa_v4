@@ -74,10 +74,11 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   // Effet pour gérer le défilement automatique du carrousel
   useEffect(() => {
     //console.log('Chart4All: Initialisation du carrousel');
+    console.log('Chart4All: cachedRobots4Agencies ', cachedRobots4Agencies);
     
     const handleRobotDataUpdate = () => {
       //console.log('Chart4All: Mise à jour des données robots', cachedRobots4Agencies.length);
-      const filteredRobots = cachedRobots4Agencies.filter(robot => robot.type_gain !== 'temps');
+      const filteredRobots = cachedRobots4Agencies.filter(robot => robot.type_gain !== 'TEMPS (mn)');
       //console.log('Chart4All: Robots filtrés', filteredRobots.length);
       setRobots(filteredRobots);
     };
