@@ -30,7 +30,7 @@ export default function RobotSelector({ robots, selectedRobotId, onRobotChange }
         <SelectValue placeholder="Sélectionnez un robot">
           {
             // Si l'id sélectionné correspond à un TOUT (contextualisé ou non), afficher "TOUT"
-            (selectedRobotId === 'TOUT' || (selectedRobotId && selectedRobotId.endsWith('_TOUT')))
+            (selectedRobotId && (selectedRobotId === 'TOUT' || selectedRobotId.endsWith('_TOUT')))
               ? 'TOUT'
               : verboseName(robotsList.find((r: Robot) => r.id_robot === selectedRobotId))
           }

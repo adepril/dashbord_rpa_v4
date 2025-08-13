@@ -185,7 +185,7 @@ graph TD
     A[Initialisation Dashboard] --> B[Chargement données]
     B --> C{Robot sélectionné?}
     C -->|Oui| D[Données robot spécifique]
-    C -->|Non| E[Mode "TOUT"]
+    C -->|Non| E[Mode 'TOUT']
     E --> F{Agence sélectionnée?}
     F -->|Oui| G[Filtrage par agence]
     F -->|Non| H[Vue globale]
