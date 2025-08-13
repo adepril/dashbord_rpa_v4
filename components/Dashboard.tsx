@@ -4,7 +4,7 @@ interface DashboardProps {
   // Add any props if needed
 }
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation';
 import RobotSelector from './RobotSelector'
 import Chart from './Chart'
