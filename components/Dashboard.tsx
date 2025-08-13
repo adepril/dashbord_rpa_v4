@@ -4,7 +4,7 @@ interface DashboardProps {
   // Add any props if needed
 }
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation';
 import RobotSelector from './RobotSelector'
 import Chart from './Chart'
@@ -175,25 +175,25 @@ export default function Dashboard() {
 
           const AllAgencies = getCachedAllAgencies();
           setAllAgencies(AllAgencies);
-          console.log('(Dashboard / initializeReportingData) loadInitialData - Toutes les Agences récupérées :', AllAgencies);
+          //console.log('(Dashboard / loadInitialData) Toutes les Agences récupérées :', AllAgencies);
           
           // Définir l'agence par défaut (la première sélectionnable ou 'TOUT')
           const defaultAgency = AllAgencies.find(a => a.isSelectable) || AllAgencies.find(a => a.codeAgence === 'TOUT') || AllAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
-          console.log('(Dashboard / initializeReportingData) loadInitialData - Agence par défaut:', defaultAgency)
+          console.log('(Dashboard / loadInitialData) Agence par défaut:', defaultAgency)
 
           // Étape 3: Charger tous les robots
           await loadAllRobots();
-          console.log('(Dashboard) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
+          console.log('(Dashboard / loadInitialData) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
           setRobots(cachedRobotsFromTableBaremeReport);
 
           //Etape 4: Charger les services de la table 'Services'
           await loadAllServices();
-          //console.log('Tous les services chargés en cache:', cachedServices);
+          console.log('(Dashboard / loadInitialData) Tous les services chargés en cache (cachedServices):', cachedServices);
           setAvailableServices(new Set(cachedServices));
           // Définir le service par défaut
           setSelectedService('TOUT'); //?
-          //console.log('(Dashboard / initializeReportingData) loadInitialData - Service par défaut: TOUT');
+          console.log('(Dashboard / loadInitialData)  Service par défaut: TOUT');
 
           setSelectedMonth('N'); // Réinitialiser le mois sélectionné à 'N'
           //console.log('(Dashboard / initializeReportingData) loadInitialData - Mois sélectionné:', selectedMonth);
@@ -451,14 +451,23 @@ useEffect(() => {
     
       if (agencySelected) {
         setSelectedAgency(agencySelected);
-    
-        // Mettre à jour les robots en fonction de l'agence sélectionnée
-        // Les robots seront mis à jour via le callback setUpdateRobotsCallback appelé par AgencySelector
-    
-        // Au lieu de remettre à null, forcer un "TOUT" contextualisé sur l'agence
+
+        // Réinitialiser le sélecteur Service à "TOUT" lorsqu'une agence est choisie
+        // - On ne veut pas déclencher le filtrage par service initié par l'utilisateur ici,
+        //   donc on s'assure que le flag isUserSelectingService est à false.
+        setIsUserSelectingService(false);
+        setSelectedService('TOUT');
+
+        // Mettre à jour la liste des robots immédiatement selon l'agence sélectionnée
+        const robotsForAgency = cachedRobotsFromTableBaremeReport.filter(r => r.agence === agencySelected.codeAgence);
+        setRobots(robotsForAgency);
+        updateService(robotsForAgency);
+
+        // Forcer un "TOUT" contextualisé sur l'agence (avec id cohérent)
         const TOUT_FOR_AGENCY: Robot = {
           ...TOUT_ROBOT,
-          agence: agencySelected.codeAgence
+          agence: agencySelected.codeAgence,
+          id_robot: `${agencySelected.codeAgence}_TOUT`
         };
         //console.log('[Dashboard] handleAgencyChange - Forcing TOUT Robot for agency:', TOUT_FOR_AGENCY);
         setSelectedRobot(TOUT_FOR_AGENCY);
@@ -498,11 +507,97 @@ useEffect(() => {
       if (robot && selectedAgency) {
         setSelectedRobot(robot);
         setSelectedRobotDataFromBareme(robot);
+
+        // Cas 5 : Si un service est déjà sélectionné, mettre à jour le sélecteur 'Service'
+        // pour afficher le service du robot sélectionné.
+        if (selectedService && selectedService !== 'TOUT') {
+          // Mise à jour programmatique : ne pas déclencher le flag utilisateur
+          setIsUserSelectingService(false);
+          setSelectedService(robot.service || 'TOUT');
+        }
       } else {
         console.log('Robot ou agence non trouvé');
       }
       //console.log('--- END ROBOT CHANGE - ', robotID);
     };
+
+    // Filtrage des robots quand l'utilisateur sélectionne un service (Cas 2 et 3)
+    useEffect(() => {
+      // Ne rien faire si le changement de service n'a pas été initié par l'utilisateur via le sélecteur Service
+      if (!isUserSelectingService) {
+        return;
+      }
+
+      // Réinitialiser le flag utilisateur après traitement
+      const finalize = () => {
+        setIsUserSelectingService(false);
+      };
+
+      try {
+        // Cas : service "TOUT" -> réafficher selon l'agence sélectionnée ou droits utilisateur
+        if (!selectedService || selectedService === 'TOUT') {
+          if (selectedAgency && selectedAgency.codeAgence !== 'TOUT') {
+            const filteredForAgency = cachedRobotsFromTableBaremeReport.filter(r => r.agence === selectedAgency.codeAgence);
+            setRobots(filteredForAgency);
+            updateService(filteredForAgency);
+            const TOUT_FOR_AGENCY: Robot = {
+              ...TOUT_ROBOT,
+              agence: selectedAgency.codeAgence,
+              id_robot: `${selectedAgency.codeAgence}_TOUT`
+            };
+            setSelectedRobot(TOUT_FOR_AGENCY);
+            setSelectedRobotDataFromBareme(TOUT_FOR_AGENCY);
+          } else {
+            // Agence = TOUT : garder tous les robots des agences accessibles à l'utilisateur
+            const allowed = userAgenceIds && userAgenceIds.length > 0
+              ? cachedRobotsFromTableBaremeReport.filter(r => userAgenceIds.includes(r.agence))
+              : cachedRobotsFromTableBaremeReport.slice();
+            setRobots(allowed);
+            updateService(allowed);
+            setSelectedRobot(TOUT_ROBOT);
+            setSelectedRobotDataFromBareme(TOUT_ROBOT);
+          }
+          finalize();
+          return;
+        }
+
+        // Cas 2 : Service sélectionné & Agence = TOUT
+        if (selectedAgency && selectedAgency.codeAgence === 'TOUT') {
+          const filtered = cachedRobotsFromTableBaremeReport.filter(r =>
+            r.service === selectedService && (userAgenceIds.length === 0 ? true : userAgenceIds.includes(r.agence))
+          );
+          setRobots(filtered);
+          updateService(filtered);
+          // Forcer sélection "TOUT" contextualisé
+          setSelectedRobot(TOUT_ROBOT);
+          setSelectedRobotDataFromBareme(TOUT_ROBOT);
+          finalize();
+          return;
+        }
+
+        // Cas 3 : Service sélectionné & Agence sélectionnée
+        if (selectedAgency) {
+          const filtered = cachedRobotsFromTableBaremeReport.filter(r =>
+            r.service === selectedService && r.agence === selectedAgency.codeAgence
+          );
+          setRobots(filtered);
+          updateService(filtered);
+          const TOUT_FOR_AGENCY: Robot = {
+            ...TOUT_ROBOT,
+            agence: selectedAgency.codeAgence,
+            id_robot: `${selectedAgency.codeAgence}_TOUT`
+          };
+          setSelectedRobot(TOUT_FOR_AGENCY);
+          setSelectedRobotDataFromBareme(TOUT_FOR_AGENCY);
+          finalize();
+          return;
+        }
+
+      } catch (err) {
+        console.error('[Dashboard] service filter error:', err);
+        finalize();
+      }
+    }, [selectedService]);
 
     const handleOpenForm = () => {
       setIsFormOpen(true);

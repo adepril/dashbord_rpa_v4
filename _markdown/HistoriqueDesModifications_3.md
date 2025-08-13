@@ -248,3 +248,74 @@ Correction d'un problème où des agences non autorisées par l'utilisateur éta
 - Vérification du comportement de grisement des agences avec différents `userAgenceIds`.
 - S'assurer que seules les agences autorisées sont cliquables.
 - Vérifier que l'agence "TOUT" reste sélectionnable.
+
+
+## 2025-08-12 - Filtrage des robots par service
+
+### Contexte
+Le filtrage des robots par service n'était pas fonctionnel. Quand un service était sélectionné dans le `ServiceSelector`, la liste des robots affichée dans le `RobotSelector` ne se mettait pas à jour en conséquence. La tâche était d'implémenter ce tri en se basant sur l'attribut `service` des robots de `cachedRobotsFromTableBaremeReport`. Il était également important que ce filtrage ne s'applique pas si un robot spécifique était déjà sélectionné.
+
+### Modifications techniques
+
+#### 1. Modification de `components/Dashboard.tsx`
+- **Import de `useMemo`**: Ajout de `useMemo` à l'importation de React pour permettre l'optimisation des calculs de la liste des robots à afficher.
+- **Ajout de `robotsToDisplay` avec `useMemo`**: Une nouvelle variable calculée `robotsToDisplay` a été introduite. Cette variable utilise `useMemo` pour filtrer la liste complète des robots (`robots`) en fonction du `selectedService` et du `selectedRobot`.
+   - Si un `selectedRobot` spécifique (différent de "TOUT") est choisi, le filtrage par service est désactivé et tous les robots sont retournés.
+   - Si aucun robot spécifique n'est sélectionné (`selectedRobot.id_robot === 'TOUT'`), la liste des robots est filtrée par `selectedService`. Si `selectedService` est "TOUT", tous les robots sont affichés ; sinon, seuls les robots dont l'attribut `service` correspond au `selectedService` sont affichés.
+- **Mise à jour du `RobotSelector`**: Le composant `RobotSelector` reçoit désormais `robotsToDisplay` au lieu de la liste complète `robots`, assurant que la liste affichée est toujours pertinente au service sélectionné.
+
+### Impact des modifications
+- Le `RobotSelector` affiche désormais une liste de robots filtrée dynamiquement en fonction du service sélectionné par l'utilisateur.
+- Le filtrage est désactivé lorsque l'utilisateur a sélectionné un robot spécifique, garantissant que la sélection manuelle prime sur le filtrage par service.
+- L'expérience utilisateur est améliorée en fournissant une liste de robots plus pertinente et plus facile à naviguer.
+
+### Fichiers modifiés
+- `components/Dashboard.tsx`
+
+### Tests effectués
+- Vérification du filtrage des robots lorsque "TOUT" est sélectionné comme service.
+- Vérification du filtrage des robots lorsque un service spécifique est sélectionné.
+- Vérification que le filtrage par service est ignoré lorsqu'un robot spécifique est sélectionné.
+- S'assurer que le changement de service met à jour correctement la liste des robots.
+
+---
+
+## 2025-08-13 - Filtrage des robots par service et synchronisation des sélecteurs
+
+### Contexte
+Suite au rapport d'anomalie, le sélecteur "Service" ne mettait pas à jour la liste des robots affichés dans le sélecteur "Robot". Le besoin était de filtrer côté client (sans nouvelle requête réseau) en s'appuyant sur le cache existant `cachedRobotsFromTableBaremeReport`, tout en respectant les droits agence de l'utilisateur et les différents cas d'utilisation métiers.
+
+### Résumé des modifications appliquées
+- Ajout d'un filtrage côté client par service (useEffect) dans le tableau de bord.
+  - Fichier principal modifié : [`components/Dashboard.tsx`](components/Dashboard.tsx:497)
+  - Comportement : lorsque l'utilisateur sélectionne un service via le sélecteur, on filtre `cachedRobotsFromTableBaremeReport` sur l'attribut `service` et, selon le cas, sur l'attribut `agence`.
+- Réinitialisation du sélecteur "Service" à "TOUT" quand l'utilisateur choisit une agence.
+  - Fichier modifié : [`components/Dashboard.tsx`](components/Dashboard.tsx:447)
+  - Comportement : lors du changement d'agence, le sélecteur Service est remis à "TOUT", la liste des robots est mise à jour pour l'agence choisie, et un robot synthétique "TOUT" contextualisé par agence est sélectionné.
+- Synchronisation du sélecteur "Service" lors de la sélection d'un robot (Cas 5).
+  - Fichier modifié : [`components/Dashboard.tsx`](components/Dashboard.tsx:476)
+  - Comportement : si un robot est sélectionné alors qu'un service est déjà affiché, le sélecteur Service est mis à jour pour afficher le service du robot sélectionné (mise à jour effectuée sans déclencher le flag utilisateur pour éviter des boucles).
+- Mise à jour des services disponibles après tout filtrage via la fonction `updateService`.
+  - Emplacement : [`components/Dashboard.tsx`](components/Dashboard.tsx:519)
+  - Comportement : reconstruit l'ensemble des services affichables à partir de la liste de robots fournie.
+- Documentation : ajout d'une entrée descriptive et d'un enregistrement en mémoire (byterover).
+  - Fichier journal mis à jour : [`_markdown/HistoriqueDesModifications.md`](_markdown/HistoriqueDesModifications.md:1)
+
+### Cas couverts
+1. Chargement initial (aucune sélection) — comportement inchangé.
+2. Service sélectionné & Agence = "TOUT" — affichage des robots dont `service === selectedService` appartenant aux agences autorisées.
+3. Service sélectionné & Agence sélectionnée — affichage des robots dont `service === selectedService` et `agence === selectedAgency`.
+4. Sélection robot quand Service = "TOUT" — comportement existant conservé.
+5. Sélection robot quand un Service est déjà sélectionné — synchronisation du sélecteur Service sur le service du robot sélectionné.
+
+### Instructions de vérification manuelle
+1. Démarrer l'application et vérifier l'état initial : les 3 sélecteurs doivent être à "TOUT" et tous les robots accessibles doivent être listés.
+2. Avec Agence = "TOUT", sélectionner un service A et vérifier que le sélecteur Robot n'affiche que les robots `service === A` et appartenant aux agences de l'utilisateur.
+3. Sélectionner une agence X puis un service A ; vérifier que le sélecteur Robot affiche uniquement les robots `agence === X && service === A`.
+4. Sélectionner un robot spécifique avec Service = "TOUT" : comportement inchangé (affichage du robot).
+5. Sélectionner un robot Y alors qu'un service est déjà sélectionné : vérifier que le sélecteur Service affiche le service du robot Y et que les données sont chargées correctement.
+
+### Points d'attention
+- Le filtrage s'appuie sur `cachedRobotsFromTableBaremeReport` et sur `userAgenceIds`; vérifier que ces caches/droits sont initialisés avant interaction.
+- Le flag `isUserSelectingService` est utilisé pour distinguer changements utilisateurs et changements programmatiques ; les mises à jour programmatiques le maintiennent à false pour éviter des ré‑exécutions inutiles.
+- Les robots synthétiques "TOUT" contextualisés (id `${codeAgence}_TOUT`) sont créés pour maintenir la cohérence avec les composants consommateurs (Chart/Chart4All, RobotSelector). Vérifier l'acceptation de ces ids dans d'autres parties du code si nécessaire.
