@@ -1,7 +1,7 @@
 # Historique des Modifications
 
 
-##  2025-08-14 - Agrégation des données avec `temps_par_unite`
+##  2025-08-14 - Multiplication par `temps_par_unite` pour la vue 'Chart4All.tsx'
 
 
 ### Fichiers modifiés
