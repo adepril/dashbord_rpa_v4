@@ -75,7 +75,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
 
-  const handleBarDoubleClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
+  const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
     //console.log('Chart4All: Double-clic sur la barre', data, event);
     if (data.valeur > 0 && data.aggregatedRobotDetails && data.aggregatedRobotDetails.length > 0) {
         setRobotDataForTooltip(data);
@@ -296,7 +296,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                     fontSize: 10,
                     formatter: (value: number) => value === 0 ? '' : formatDuration(value)
                   }}
-                  onDoubleClick={(data: any, index: number, event: React.MouseEvent) => handleBarDoubleClick(data, index, event)}
+                  onClick={(data: any, index: number, event: React.MouseEvent) => handleBarClick(data, index, event)}
                   activeBar={{
                     fill: robotType?.toLowerCase() === "temps" ? '#3498db' : '#3333db'
                   }}

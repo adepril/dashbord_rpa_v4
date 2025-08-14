@@ -276,3 +276,53 @@ Suite à la demande de l'utilisateur, l'attribut `temps_par_unite` a été ajout
 3.  Double-cliquer sur une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
 4.  Vérifier que la fenêtre du tooltip affiche la liste des noms des robots regroupés ainsi que leur `temps_par_unite` respectif au format "(X min/unité)".
 5.  S'assurer que l'affichage est correct et lisible.
+## 2025-08-14 - Changement du déclenchement du tooltip (double-clic vers simple clic) dans Chart4All.tsx
+
+### Description des modifications
+Afin d'améliorer l'expérience utilisateur, le déclenchement du tooltip affichant la liste des robots agrégés dans `Chart4All.tsx` a été modifié : il s'active désormais avec un **simple clic** sur la barre du graphique, au lieu d'un double-clic.
+
+### Changements apportés :
+1.  **Renommage de la fonction de gestion d'événement** :
+    *   La fonction `handleBarDoubleClick` (initialement à la ligne 78) a été renommée en `handleBarClick`. Cela reflète son nouveau rôle de gestionnaire d'un simple clic. Son comportement (`setRobotDataForTooltip`, `setShowRobotListTooltip`, `setTooltipPosition`) reste inchangé.
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx)
+    *   **Extrait de code pertinent :**
+        ```typescript
+        // Avant
+        const handleBarDoubleClick = useCallback((data: any, index: number, event: React.MouseEvent) => { /* ... */ });
+
+        // Après
+        const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => { /* ... */ });
+        ```
+
+2.  **Mise à jour de l'événement déclencheur sur le composant `<Bar>`** :
+    *   L'attribut `onDoubleClick` sur le composant `<Bar>` de Recharts (précédemment à la ligne 300) a été remplacé par `onClick`. Cet attribut appelle désormais la fonction `handleBarClick` renommée.
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx)
+    *   **Extrait de code pertinent :**
+        ```typescript
+        // Avant
+        <Bar
+          // ...
+          onDoubleClick={(data: any, index: number, event: React.MouseEvent) => handleBarDoubleClick(data, index, event)}
+        />
+
+        // Après
+        <Bar
+          // ...
+          onClick={(data: any, index: number, event: React.MouseEvent) => handleBarClick(data, index, event)}
+        />
+        ```
+
+### Impact des modifications
+*   L'interaction avec le graphique est simplifiée : un simple clic suffit désormais pour afficher les détails des robots agrégés, rendant l'interface plus intuitive et facile à utiliser.
+*   Aucun impact sur la logique interne ou l'affichage des données agrégées ; seule la méthode de déclenchement du tooltip a été modifiée.
+
+### Fichiers modifiés
+- [`components/Chart4All.tsx`](components/Chart4All.tsx)
+
+### Tests recommandés
+1.  Lancer l'application et naviguer vers le tableau de bord.
+2.  Sélectionner l'option "TOUT" pour les agences ou pour les robots (ou les deux).
+3.  **Cliquer une seule fois** sur une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
+4.  Vérifier que le tooltip affichant la liste des robots agrégés apparaît.
+5.  S'assurer qu'un double-clic n'est plus nécessaire et ne déclenche pas une double ouverture ou un comportement inattendu.
+6.  Vérifier que le tooltip se ferme toujours correctement en cliquant en dehors.
