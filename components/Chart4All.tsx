@@ -72,12 +72,12 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRobotListTooltip, setShowRobotListTooltip] = useState(false);
-  const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotNames: string[]; } | null>(null);
+  const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
 
   const handleBarDoubleClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
     //console.log('Chart4All: Double-clic sur la barre', data, event);
-    if (data.valeur > 0 && data.aggregatedRobotNames && data.aggregatedRobotNames.length > 0) {
+    if (data.valeur > 0 && data.aggregatedRobotDetails && data.aggregatedRobotDetails.length > 0) {
         setRobotDataForTooltip(data);
         setShowRobotListTooltip(true);
         setTooltipPosition({ x: event.clientX, y: event.clientY });
@@ -180,7 +180,12 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
     return {
       date: dateKey,
       valeur: value,
-      aggregatedRobotNames: data1.aggregatedRobotNames || []
+      aggregatedRobotDetails: (data1.aggregatedRobotNames || [])
+        .map((robotName: string) => {
+          const robotDetail = cachedRobots4Agencies.find(robot => robot.robot === robotName);
+          return robotDetail ? { name: robotName, temps_par_unite: robotDetail.temps_par_unite } : null;
+        })
+        .filter(Boolean)
     };
   }); // Chart 1
   // Si toutes les valeurs sont nulles, affichage d'un message informant l'utilisateur
@@ -257,7 +262,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                   labelFormatter={(label: string) => label}
                   content={({ payload, label }) => {
                     if (!payload || payload.length === 0) return null;
-                    const { valeur, date, aggregatedRobotNames } = payload[0].payload;
+                    const { valeur, date, aggregatedRobotDetails } = payload[0].payload;
                     if (valeur === undefined || valeur === 0) return null;
 
                     const gain = `Gain : ${formatDuration(valeur)}`;
@@ -352,12 +357,12 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
         </button>
         <p className="font-bold">{new Date(robotDataForTooltip.date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         <p className="text-gray-600">Gain : {formatDuration(robotDataForTooltip.valeur)}</p>
-        {robotDataForTooltip.aggregatedRobotNames && robotDataForTooltip.aggregatedRobotNames.length > 0 && (
+        {robotDataForTooltip.aggregatedRobotDetails && robotDataForTooltip.aggregatedRobotDetails.length > 0 && (
             <>
                 <p className="font-bold mt-2">Composition :</p>
                 <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
-                    {robotDataForTooltip.aggregatedRobotNames.map((name: string, index: number) => (
-                        <li key={index} className="text-sm">{name}</li>
+                    {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string }, index: number) => (
+                        <li key={index} className="text-sm">{robot.name} ({robot.temps_par_unite} min/unité)</li>
                     ))}
                 </ul>
             </>

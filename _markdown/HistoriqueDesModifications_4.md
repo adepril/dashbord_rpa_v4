@@ -188,3 +188,91 @@ La liste des robots agrégés était affichée dans un tooltip au survol des bar
 5.  **Gestion de la fermeture du tooltip au clic en dehors** : Pour améliorer l'expérience utilisateur, un `useRef` (`tooltipRef`) et un `useEffect` (lignes 170-180) ont été mis en place. Ce mécanisme permet de détecter un clic en dehors du tooltip des robots agrégés, fermant automatiquement celui-ci si un tel clic se produit.
 
 Ces modifications permettent de fournir une interface utilisateur plus contrôlée pour l'affichage des détails des robots, en passant d'un comportement passif (survol) à un comportement actif (double-clic).
+## 2025-08-14 - Ajout de l'attribut 'temps_par_unite' aux robots dans le tooltip de Chart4All.tsx
+
+### Description des modifications
+Suite à la demande de l'utilisateur, l'attribut `temps_par_unite` a été ajouté à l'affichage de chaque robot dans le tooltip de `Chart4All.tsx`.
+
+### Changements apportés :
+1.  **Modification de l'interface `robotDataForTooltip`** :
+    *   Le type de l'état `robotDataForTooltip` a été mis à jour pour inclure un tableau de détails de robots (`aggregatedRobotDetails`) contenant à la fois le `name` et le `temps_par_unite` pour chaque robot, remplaçant l'ancien `aggregatedRobotNames` qui ne contenait que les noms.
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx:75)
+    *   **Extrait de code pertinent (avant/après) :**
+        ```typescript
+        // Avant
+        const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotNames: string[]; } | null>(null);
+
+        // Après
+        const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string }[]; } | null>(null);
+        ```
+
+2.  **Mise à jour de la logique de `chartData`** :
+    *   La construction de `chartData` a été modifiée pour mapper les noms de robots agrégés du `data1.aggregatedRobotNames` aux objets `Robot` complets (`cachedRobots4Agencies`) afin de récupérer l'attribut `temps_par_unite`. Les données agrégées sont désormais stockées dans `aggregatedRobotDetails`.
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx:183)
+    *   **Extrait de code pertinent (avant/après) :**
+        ```typescript
+        // Avant
+        aggregatedRobotNames: data1.aggregatedRobotNames || []
+
+        // Après
+        aggregatedRobotDetails: (data1.aggregatedRobotNames || [])
+          .map((robotName: string) => {
+            const robotDetail = cachedRobots4Agencies.find(robot => robot.robot === robotName);
+            return robotDetail ? { name: robotName, temps_par_unite: robotDetail.temps_par_unite } : null;
+          })
+          .filter(Boolean)
+        ```
+
+3.  **Révision de `handleBarDoubleClick`** :
+    *   La condition dans `handleBarDoubleClick` a été ajustée pour faire référence à `aggregatedRobotDetails` au lieu de `aggregatedRobotNames` pour vérifier la présence de données avant d'afficher le tooltip.
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx:80)
+    *   **Extrait de code pertinent (avant/après) :**
+        ```typescript
+        // Avant
+        if (data.valeur > 0 && data.aggregatedRobotNames && data.aggregatedRobotNames.length > 0) {
+
+        // Après
+        if (data.valeur > 0 && data.aggregatedRobotDetails && data.aggregatedRobotDetails.length > 0) {
+        ```
+
+4.  **Mise à jour du rendu du `Tooltip`** :
+    *   Le composant `Tooltip` a été modifié pour itérer sur `robotDataForTooltip.aggregatedRobotDetails` et afficher le `name` du robot ainsi que son `temps_par_unite` formaté comme "(X min/unité)".
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx:355-363)
+    *   **Extrait de code pertinent (avant/après) :**
+        ```typescript
+        // Avant
+                {robotDataForTooltip.aggregatedRobotNames && robotDataForTooltip.aggregatedRobotNames.length > 0 && (
+                    <>
+                        <p className="font-bold mt-2">Composition :</p>
+                        <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
+                            {robotDataForTooltip.aggregatedRobotNames.map((name: string, index: number) => (
+                                <li key={index} className="text-sm">{name}</li>
+                            ))}
+                        </ul>
+                    </>
+
+        // Après
+                {robotDataForTooltip.aggregatedRobotDetails && robotDataForTooltip.aggregatedRobotDetails.length > 0 && (
+                    <>
+                        <p className="font-bold mt-2">Composition :</p>
+                        <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
+                            {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string }, index: number) => (
+                                <li key={index} className="text-sm">{robot.name} ({robot.temps_par_unite} min/unité)</li>
+                            ))}
+                        </ul>
+                    </>
+        ```
+
+### Impact des modifications
+*   Le tooltip affiche maintenant des informations plus complètes et pertinentes pour chaque robot agrégé, incluant leur temps par unité, ce qui améliore la compréhension des données du graphique.
+*   Le type `Robot` importé de `utils/dataStore` contient l'attribut `temps_par_unite` qui est utilisé pour cet affichage.
+
+### Fichiers modifiés
+- [`components/Chart4All.tsx`](components/Chart4All.tsx)
+
+### Tests recommandés
+1.  Lancer l'application et naviguer vers le tableau de bord.
+2.  Sélectionner l'option "TOUT" pour les agences ou pour les robots (ou les deux).
+3.  Double-cliquer sur une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
+4.  Vérifier que la fenêtre du tooltip affiche la liste des noms des robots regroupés ainsi que leur `temps_par_unite` respectif au format "(X min/unité)".
+5.  S'assurer que l'affichage est correct et lisible.
