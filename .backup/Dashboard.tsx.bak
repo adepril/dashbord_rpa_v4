@@ -238,164 +238,178 @@ export default function Dashboard() {
       //console.log(`[Dashboard] loadRobotData - currentRobot:`, currentRobot, `- selectedMonth: ${currentMonth}`);
 
       if (currentRobot && currentRobot.robot) {
-      if (currentRobot.robot === 'TOUT') {
-        // ****** Préparation des données pour Chart4All.tsx (agrégation par agence sélectionnée) ******
-        const activeAgency = selectedAgency?.codeAgence || 'TOUT';
-        console.log('[Dashboard] loadRobotData (TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency, ' - currentRobot:', currentRobot);
+        if (currentRobot.robot === 'TOUT') {
+          // ****** Préparation des données pour Chart4All.tsx (agrégation par agence sélectionnée) ******
+          const activeAgency = selectedAgency?.codeAgence || 'TOUT';
+          //console.log('[Dashboard] loadRobotData (TOUT) - selectedMonth:', selectedMonth, '- activeAgency:', activeAgency, ' - currentRobot:', currentRobot);
 
-        // Filtrer la liste des robots selon l'agence active et ne garder que ceux mesurant un gain de type "temps"
-        const robotsFiltered = robots.filter(r =>
-          r.robot && r.robot !== 'TOUT' &&
-          (activeAgency === 'TOUT' ? true : r.agence === activeAgency) &&
-          (r.type_gain ? String(r.type_gain).toLowerCase().includes('temps') : false)
-        );
-        const robotIdsFiltered = new Set(robotsFiltered.map(r => r.id_robot));
-        console.log('[Dashboard] loadRobotData (TOUT) - robotsFiltered count (temps only):', robotsFiltered.length, '- robotsFiltered', robotsFiltered);
+          // Filtrer la liste des robots selon l'agence active et ne garder que ceux mesurant un gain de type "temps"
+          const robotsFiltered = robots.filter(r =>
+            r.robot && r.robot !== 'TOUT' &&
+            (activeAgency === 'TOUT' ? true : r.agence === activeAgency) &&
+            (r.type_gain ? String(r.type_gain).toLowerCase().includes('temps') : false)
+          );
+          const robotsFilteredMap = new Map(robotsFiltered.map(r => [`${r.agence}_${r.robot}`, r]));
+          //console.log('[Dashboard] loadRobotData (TOUT) - robotsFiltered count (temps only):', robotsFiltered.length, '- robotsFiltered', robotsFiltered);
 
-        // Préparer l'agrégation journalière
-        let dailyTotals: number[] = new Array(31).fill(0);
-        let totalUnitsSinceMonthStart: number = 0;
 
-        // Déterminer mois/année affichés
-        const now = new Date();
-        let displayMonth = now.getMonth() + 1;
-        let displayYear = now.getFullYear();
-        if (selectedMonth !== 'N') {
-          const monthOffset = parseInt(selectedMonth.split('-')[1]);
-          displayMonth -= monthOffset;
-          if (displayMonth < 1) {
-            displayMonth += 12;
-            displayYear -= 1;
-          }
-        }
-        const currentMonthStr = displayMonth.toString().padStart(2, '0');
-        const currentYear = displayYear;
+          // Préparer l'agrégation journalière
+          let dailyTotals: number[] = new Array(31).fill(0);
+          let totalUnitsSinceMonthStart1: number = 0;
+          let totalUnitsSinceMonthStart: number = 0;
 
-        // Extraire les entrées de reporting correspondant aux ids filtrés
-        const reportingEntries = getReportingData(selectedMonth).filter((entry: ReportingEntry) => {
-          const entryId = `${entry.AGENCE}_${entry['NOM_ROBOT']}`;
-          return robotIdsFiltered.has(entryId);
-        });
-        console.log('[Dashboard] loadRobotData(TOUT) - reportingEntries :', reportingEntries);
-
-        // Agréger sur les 31 jours
-        for (const rawEntry of reportingEntries) {
-          const entry: any = {
-            ...rawEntry,
-            'NB UNITES DEPUIS DEBUT DU MOIS': String(rawEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
-          };
-          for (let i = 1; i <= 31; i++) {
-            const dayColumn = `JOUR${i}`;
-            if (entry[dayColumn]) {
-              const value = Number(entry[dayColumn]) || 0;
-              dailyTotals[i - 1] += value;
+          // Déterminer mois/année affichés
+          const now = new Date();
+          let displayMonth = now.getMonth() + 1;
+          let displayYear = now.getFullYear();
+          if (selectedMonth !== 'N') {
+            const monthOffset = parseInt(selectedMonth.split('-')[1]);
+            displayMonth -= monthOffset;
+            if (displayMonth < 1) {
+              displayMonth += 12;
+              displayYear -= 1;
             }
           }
-          totalUnitsSinceMonthStart += Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0;
-        }
+          const currentMonthStr = displayMonth.toString().padStart(2, '0');
+          const currentYear = displayYear;
 
-        //Construire mergedData (AGENCE='TOUT' pour signaler Chart4All)
-        const mergedData: DataEntry = {
-          AGENCE: 'TOUT',
-          'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
-          'NB UNITES DEPUIS DEBUT DU MOIS': String(totalUnitsSinceMonthStart),
-          ...Object.fromEntries(
-            dailyTotals.map((total, i) => {
-              const day = (i + 1).toString().padStart(2, '0');
-              const dateKey = `${day}/${currentMonthStr}/${currentYear}`;
-              return [dateKey, formatNumber(total)];
-            })
-          )
-        };
-        console.log('[Dashboard] loadRobotData(TOUT) - mergedData:', mergedData);
+          //console.log("-------------------------------------------------------");
+          // Extraire les entrées de reporting correspondant aux ids filtrés
+          const reportingEntries = getReportingData(selectedMonth).filter((entry: ReportingEntry) => {
+            const entryId = `${entry.AGENCE}_${entry['NOM_ROBOT']}`;
+            return robotsFilteredMap.has(entryId);
+          });
+          //console.log('[Dashboard] loadRobotData(TOUT) - reportingEntries :', reportingEntries);
 
-        setRobotDataForBarChart(mergedData);
-        setUseChart4All(true);
+          // Agréger sur les 31 jours en appliquant temps_par_unite
+          for (const rawEntry of reportingEntries) {
+            const entryId = `${rawEntry.AGENCE}_${rawEntry['NOM_ROBOT']}`;
+            const robotDefinition = robotsFilteredMap.get(entryId);
+            const tempsParUnite = Number(robotDefinition?.temps_par_unite) || 0; // Utilisation de 0 si non trouvé ou non numérique
+            //console.log('[Dashboard] loadRobotData(TOUT) - rawEntry:', rawEntry, '- tempsParUnite:', tempsParUnite);
+            const entry: any = {
+              ...rawEntry,
+              'NB UNITES DEPUIS DEBUT DU MOIS': String(rawEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
+            };
 
-        // Calculer les totaux mensuels sur le même périmètre filtré
-        const calcTotalForMonth = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
-          const dataset = getReportingData(monthKey);
-          return dataset.reduce((acc, e) => {
-            const entryId = `${e.AGENCE}_${e['NOM_ROBOT']}`;
-            if (robotIdsFiltered.has(entryId)) {
-              return acc + (Number(e['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
+            for (let i = 1; i <= 31; i++) {
+              const dayColumn = `JOUR${i}`;
+              if (entry[dayColumn]) {
+                const value = (Number(entry[dayColumn]) || 0) * tempsParUnite;
+                dailyTotals[i - 1] += value;
+              }
             }
-            return acc;
-          }, 0);
-        };
-        const tN = calcTotalForMonth('N');
-        const tN1 = calcTotalForMonth('N-1');
-        const tN2 = calcTotalForMonth('N-2');
-        const tN3 = calcTotalForMonth('N-3');
-
-        setTotalCurrentMonth(tN);
-        setTotalPrevMonth1(tN1);
-        setTotalPrevMonth2(tN2);
-        setTotalPrevMonth3(tN3);
-
-        setSelectedRobot(currentRobot);
-      } else {
-        // ***************** Préparation des données pour Chart.tsx ************************
-        setUseChart4All(false);
-        const tpsParUnit = selectedRobotDataFromBareme?.temps_par_unite === '0' ? '0' : selectedRobotDataFromBareme?.temps_par_unite;
-
-        const robotEntry = (() => {
-          switch(selectedMonth) {
-            case 'N':
-              return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-            case 'N-1':
-              return cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-            case 'N-2':
-              return cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-            case 'N-3':
-              return cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-            default:
-              return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-                `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+            totalUnitsSinceMonthStart += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0) * tempsParUnite;
+            //console.log('[Dashboard] loadRobotData(TOUT) - entry:', entry, '- dailyTotals:', dailyTotals, '- totalUnitsSinceMonthStart:', totalUnitsSinceMonthStart);
           }
-        })();
 
-        if (robotEntry) {
-          // Résoudre le libellé d'agence à partir du cache des agences
-          const allAgencies = getCachedAllAgencies();
-          const resolvedAgenceLbl =
-            selectedRobotDataFromBareme?.agenceLbl ||
-            allAgencies.find(a => a.codeAgence === selectedRobotDataFromBareme?.agence)?.libelleAgence ||
-            selectedRobotDataFromBareme?.agence;
 
-          const processedData = {
-            ...robotEntry,
-            'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
-              ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
-              : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), // Correction ici
-            ...selectedRobotDataFromBareme,
-            agenceLbl: resolvedAgenceLbl
+          //Construire mergedData (AGENCE='TOUT' pour signaler Chart4All)
+          const mergedData: DataEntry = {
+            AGENCE: 'TOUT',
+            'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
+            'NB UNITES DEPUIS DEBUT DU MOIS': String(formatNumber(totalUnitsSinceMonthStart)), // Formatage ici pour affichage
+            ...Object.fromEntries(
+              dailyTotals.map((total, i) => {
+                const day = (i + 1).toString().padStart(2, '0');
+                const dateKey = `${day}/${currentMonthStr}/${currentYear}`;
+                return [dateKey, formatNumber(total)];
+              })
+            )
           };
-          setRobotData(processedData);
-          setRobotDataForBarChart(processedData);
+          console.log('[Dashboard] loadRobotData(TOUT) - mergedData:', mergedData);
+
+          setRobotDataForBarChart(mergedData);
+          setUseChart4All(true);
+
+          // Calculer les totaux mensuels sur le même périmètre filtré SANS appliquer temps_par_unite ici directement
+          // La multiplication est faite au niveau des reportingEntries individuelles
+          const calcTotalForMonth = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
+            const dataset = getReportingData(monthKey);
+            return dataset.reduce((acc, e) => {
+              const entryId = `${e.AGENCE}_${e['NOM_ROBOT']}`;
+              const robotDefinition = robotsFilteredMap.get(entryId); // Récupérer la définition du robot
+              const tempsParUnite = Number(robotDefinition?.temps_par_unite) || 0;
+
+              if (robotsFilteredMap.has(entryId)) { // Utiliser robotsFilteredMap
+                return acc + (Number(e['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0) * tempsParUnite;
+              }
+              return acc;
+            }, 0);
+          };
+          const tN = calcTotalForMonth('N');
+          const tN1 = calcTotalForMonth('N-1');
+          const tN2 = calcTotalForMonth('N-2');
+          const tN3 = calcTotalForMonth('N-3');
+
+          setTotalCurrentMonth(tN);
+          setTotalPrevMonth1(tN1);
+          setTotalPrevMonth2(tN2);
+          setTotalPrevMonth3(tN3);
+
+          setSelectedRobot(currentRobot);
         } else {
-          setRobotData(null);
-          setRobotDataForBarChart(null);
+          // ***************** Préparation des données pour Chart.tsx ************************
+          setUseChart4All(false);
+          const tpsParUnit = selectedRobotDataFromBareme?.temps_par_unite === '0' ? '0' : selectedRobotDataFromBareme?.temps_par_unite;
+
+          const robotEntry = (() => {
+            switch(selectedMonth) {
+              case 'N':
+                return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
+                  `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+              case 'N-1':
+                return cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
+                  `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+              case 'N-2':
+                return cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
+                  `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+              case 'N-3':
+                return cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
+                  `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+              default:
+                return cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
+                  `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+            }
+          })();
+
+          if (robotEntry) {
+            // Résoudre le libellé d'agence à partir du cache des agences
+            const allAgencies = getCachedAllAgencies();
+            const resolvedAgenceLbl =
+              selectedRobotDataFromBareme?.agenceLbl ||
+              allAgencies.find(a => a.codeAgence === selectedRobotDataFromBareme?.agence)?.libelleAgence ||
+              selectedRobotDataFromBareme?.agence;
+
+            const processedData = {
+              ...robotEntry,
+              'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
+                ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
+                : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), // Correction ici
+              ...selectedRobotDataFromBareme,
+              agenceLbl: resolvedAgenceLbl
+            };
+            setRobotData(processedData);
+            setRobotDataForBarChart(processedData);
+          } else {
+            setRobotData(null);
+            setRobotDataForBarChart(null);
+          }
+
+          const currentMonthData = cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
+            `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+          const prevMonth1Data = cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
+            `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+          const prevMonth2Data = cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
+            `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+          const prevMonth3Data = cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
+            `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
+
+          setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth2(prevMonth2Data ? Number(prevMonth2Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          setTotalPrevMonth3(prevMonth3Data ? Number(prevMonth3Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
         }
-
-        const currentMonthData = cachedReportingData.currentMonth.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-        const prevMonth1Data = cachedReportingData.prevMonth1.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-        const prevMonth2Data = cachedReportingData.prevMonth2.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-        const prevMonth3Data = cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
-          `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
-
-        setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-        setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-        setTotalPrevMonth2(prevMonth2Data ? Number(prevMonth2Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-        setTotalPrevMonth3(prevMonth3Data ? Number(prevMonth3Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-      }
       setSelectedRobot(currentRobot);
     }
   };

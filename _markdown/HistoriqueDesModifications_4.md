@@ -30,3 +30,161 @@
 ### Remarques complémentaires
 - Il est crucial de s'assurer que les valeurs de `temps_par_unite` dans `tableBaremeReport` sont exactes pour chaque robot afin d'obtenir une agrégation précise.
 
+
+## 2025-08-14 - Affichage des noms des robots agrégés dans le tooltip de Chart4All.tsx
+
+
+### Problème identifié
+Lors de l'affichage des graphiques agrégés (vue "TOUT" agences ou "TOUT" robots), le tooltip des barres n'indiquait que la date et le gain réalisé, sans lister les noms des robots dont les données avaient été regroupées. Un problème a été identifié : bien que `mergedData` (`components/Dashboard.tsx`) contenait les `aggregatedRobotNames`, cette information n'était pas propagée à chaque point de données du graphique (`chartData`) dans `components/Chart4All.tsx`, empêchant le tooltip d'y accéder.
+
+
+### Modifications apportées
+
+
+#### 1. Enrichissement de l'objet de données agrégées dans `components/Dashboard.tsx`
+**Description :** J'ai modifié la fonction `loadRobotData` pour ajouter un nouveau champ `aggregatedRobotNames` à l'objet `mergedData`. Ce champ contient un tableau de chaînes de caractères avec les noms des robots qui ont été filtrés et agrégés pour le graphique.
+**Fichier & Lignes :** [`components/Dashboard.tsx`](components/Dashboard.tsx:51), [`components/Dashboard.tsx`](components/Dashboard.tsx:310)
+
+
+**Extrait de code pertinent (avant/après) :**
+```typescript
+// Modification de l'interface DataEntry (lignes 49-54)
+interface DataEntry {
+  AGENCE: string;
+  'NOM ROBOT': string;
+  'NB UNITES DEPUIS DEBUT DU MOIS': string;
+  aggregatedRobotNames?: string[]; // Nouveau champ ajouté
+  [key: string]: any;
+}
+
+// Mise à jour de l'objet mergedData (lignes 310-319)
+const mergedData: DataEntry = {
+  AGENCE: 'TOUT',
+  'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
+  'NB UNITES DEPUIS DEBUT DU MOIS': String(formatNumber(totalUnitsSinceMonthStart)),
+  aggregatedRobotNames: robotsFiltered.map(r => r.robot), // Ajout des noms des robots agrégés ici
+  ...Object.fromEntries(
+    dailyTotals.map((total, i) => {
+      const day = (i + 1).toString().padStart(2, '0');
+      const dateKey = `${day}/${currentMonthStr}/${currentYear}`;
+      return [dateKey, formatNumber(total)];
+    })
+  )
+};
+```
+
+
+#### 2. Propagation de `aggregatedRobotNames` aux points de données du graphique dans `components/Chart4All.tsx`
+**Description :** J'ai modifié la construction de `chartData` pour que chaque point de données inclue le tableau `aggregatedRobotNames` provenant de l'objet `data1` principal. Cela assure que le `Tooltip` reçoit bien cette information.
+**Fichier & Lignes :** [`components/Chart4All.tsx`](components/Chart4All.tsx:155)
+
+**Extrait de code pertinent (avant/après) :**
+```typescript
+// Avant (simplifié)
+const chartData = Array.from({ length: 31 }, (_, i) => {
+  // ...
+  return {
+    date: dateKey,
+    valeur: value
+  };
+});
+
+// Après (lignes 155-166)
+const chartData = Array.from({ length: 31 }, (_, i) => {
+  // ...
+  return {
+    date: dateKey,
+    valeur: value,
+    aggregatedRobotNames: data1.aggregatedRobotNames || [] // Ajout des noms des robots agrégés ici
+  };
+});
+```
+
+#### 3. Mise à jour du Tooltip dans `components/Chart4All.tsx`
+**Description :** J'ai modifié le composant `Tooltip` dans `Chart4All.tsx` pour accéder au champ `aggregatedRobotNames` depuis les données du payload de *chaque point de données*. Si ce champ existe et contient des noms, ils sont affichés sous forme de liste sous le gain réalisé.
+**Fichier & Lignes :** [`components/Chart4All.tsx`](components/Chart4All.tsx:219)
+
+
+**Extrait de code pertinent (avant/après) :**
+```typescript
+// Avant (simplifié)
+formatter={(value: any, name: string, props: any) => {
+  const valeur = props.payload;
+  const gain = `Gain : ${formatDuration(valeur.valeur)}`;
+  return [gain];
+}}
+
+// Après (lignes 219-226 et contenu du tooltip)
+content={({ payload, label }) => {
+  if (!payload || payload.length === 0) return null;
+  const { valeur, date, aggregatedRobotNames } = payload[0].payload; // Extraction de aggregatedRobotNames au bon niveau
+  if (valeur === undefined || valeur === 0) return null;
+
+  const gain = `Gain : ${formatDuration(valeur)}`;
+  const dateFormatted = new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div className="bg-white shadow-md p-2 border border-gray-200 rounded text-sm">
+      <p className="font-bold">{dateFormatted}</p>
+      <p className="text-gray-600">{gain}</p>
+      {aggregatedRobotNames && aggregatedRobotNames.length > 0 && (
+        <>
+          <p className="font-bold mt-2">Robots regroupés :</p>
+          <ul className="list-disc list-inside text-gray-600 max-h-40 overflow-y-auto">
+            {aggregatedRobotNames.map((name: string, index: number) => (
+              <li key={index}>{name}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}}
+```
+
+
+### Impact des modifications
+- Le tooltip dans la vue des robots agrégés affichera maintenant la liste des robots qui ont été regroupés pour le gain indiqué, améliorant ainsi la clarté et l'utilisabilité de l'information.
+- Le code est plus robuste, gérant le cas où `aggregatedRobotNames` pourrait être vide ou inexistant.
+
+
+### Fichiers modifiés
+- [`components/Dashboard.tsx`](components/Dashboard.tsx)
+- [`components/Chart4All.tsx`](components/Chart4All.tsx)
+
+
+### Tests recommandés
+1. Lancer l'application.
+2. Sélectionner l'option "TOUT" pour les agences ou pour les robots (ou les deux).
+3. Survoler une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
+4. Vérifier que la fenêtre du tooltip affiche la date, le gain, *et* la liste des noms des robots regroupés.
+5. Vérifier que la liste des robots est correcte et ne contient pas de doublons ou de robots non pertinents (par rapport à l'agrégation affichée).
+6. Tester avec un seul robot sélectionné (vue `Chart.tsx`) pour s'assurer que le tooltip correspondant n'a pas été affecté.
+
+
+## 2025-08-14 - Modification de l'affichage des robots agrégés dans Chart4All.tsx
+
+### Description des modifications
+La liste des robots agrégés était affichée dans un tooltip au survol des barres du graphique de gain de temps. Suite à la demande de l'utilisateur, ce comportement a été modifié pour afficher cette liste dans un tooltip distinct, activé par un double-clic sur la barre.
+
+### Changements apportés :
+1.  **Gestion des états locaux** : Trois nouveaux états locaux ont été ajoutés dans `components/Chart4All.tsx` (à partir de la ligne 70 environ) pour gérer l'affichage et les données du nouveau tooltip :
+    *   `showRobotListTooltip` : Un booléen pour contrôler la visibilité du tooltip.
+    *   `robotDataForTooltip` : Stocke les données spécifiques (date, valeur, liste des robots agrégés) de la barre double-cliquée.
+    *   `tooltipPosition` : Stocke les coordonnées X et Y du pointeur de la souris lors du double-clic pour un positionnement précis du tooltip.
+
+2.  **Mise à jour du gestionnaire de double-clic (`handleBarDoubleClick`)** : Une nouvelle fonction `handleBarDoubleClick` (lignes 82-93) a été implémentée. Cette fonction est déclenchée lors d'un double-clic sur une barre du graphique :
+    *   Elle vérifie si la valeur de la barre est supérieure à zéro et si des robots agrégés sont présents.
+    *   Si c'est le cas, elle met à jour les états `robotDataForTooltip`, `showRobotListTooltip` et `tooltipPosition`.
+    *   Sinon, elle réinitialise ces états pour masquer le tooltip.
+
+3.  **Intégration du double-clic sur les barres** : La propriété `onDoubleClick` a été ajoutée directement au composant `Bar` de Recharts (ligne 258 environ), appelant `handleBarDoubleClick` avec les données de la barre, l'index et l'événement de la souris. Cela remplace l'affichage précédent des robots agrégés qui était commenté dans le `Tooltip` (lignes 234-243).
+
+4.  **Création du composant de tooltip personnalisé** : Un nouveau bloc JSX a été ajouté dans le `return` principal de `Chart4All.tsx` (lignes 292-321 approximativement). Ce bloc est rendu conditionnellement si `showRobotListTooltip` est `true` et si `robotDataForTooltip` et `tooltipPosition` sont définis. Ce tooltip :
+    *   Est positionné de manière absolue en utilisant les coordonnées enregistrées dans `tooltipPosition`.
+    *   Affiche la date, le gain et la liste des `Robots regroupés`.
+    *   Comporte un bouton de fermeture (`&times;`) pour permettre à l'utilisateur de le masquer manuellement.
+
+5.  **Gestion de la fermeture du tooltip au clic en dehors** : Pour améliorer l'expérience utilisateur, un `useRef` (`tooltipRef`) et un `useEffect` (lignes 170-180) ont été mis en place. Ce mécanisme permet de détecter un clic en dehors du tooltip des robots agrégés, fermant automatiquement celui-ci si un tel clic se produit.
+
+Ces modifications permettent de fournir une interface utilisateur plus contrôlée pour l'affichage des détails des robots, en passant d'un comportement passif (survol) à un comportement actif (double-clic).

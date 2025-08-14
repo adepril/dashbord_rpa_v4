@@ -50,6 +50,7 @@ interface DataEntry {
   AGENCE: string;
   'NOM ROBOT': string;
   'NB UNITES DEPUIS DEBUT DU MOIS': string;
+  aggregatedRobotNames?: string[]; // Nouveau champ pour stocker les noms des robots agrégés
   [key: string]: any;
 }
 
@@ -309,6 +310,7 @@ export default function Dashboard() {
             AGENCE: 'TOUT',
             'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
             'NB UNITES DEPUIS DEBUT DU MOIS': String(formatNumber(totalUnitsSinceMonthStart)), // Formatage ici pour affichage
+            aggregatedRobotNames: robotsFiltered.map(r => r.robot), // Ajout des noms des robots agrégés
             ...Object.fromEntries(
               dailyTotals.map((total, i) => {
                 const day = (i + 1).toString().padStart(2, '0');
