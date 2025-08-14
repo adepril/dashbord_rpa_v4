@@ -249,7 +249,7 @@ export default function Dashboard() {
           (activeAgency === 'TOUT' ? true : r.agence === activeAgency) &&
           (r.type_gain ? String(r.type_gain).toLowerCase().includes('temps') : false)
         );
-        const robotsFilteredMap = new Map(robotsFiltered.map(r => [`${r.agence}_${r.robot}`, r]));
+        const robotIdsFiltered = new Set(robotsFiltered.map(r => r.id_robot));
         console.log('[Dashboard] loadRobotData (TOUT) - robotsFiltered count (temps only):', robotsFiltered.length, '- robotsFiltered', robotsFiltered);
 
         // Préparer l'agrégation journalière
@@ -274,36 +274,31 @@ export default function Dashboard() {
         // Extraire les entrées de reporting correspondant aux ids filtrés
         const reportingEntries = getReportingData(selectedMonth).filter((entry: ReportingEntry) => {
           const entryId = `${entry.AGENCE}_${entry['NOM_ROBOT']}`;
-          return robotsFilteredMap.has(entryId);
+          return robotIdsFiltered.has(entryId);
         });
         console.log('[Dashboard] loadRobotData(TOUT) - reportingEntries :', reportingEntries);
 
-        // Agréger sur les 31 jours en appliquant temps_par_unite
+        // Agréger sur les 31 jours
         for (const rawEntry of reportingEntries) {
-          const entryId = `${rawEntry.AGENCE}_${rawEntry['NOM_ROBOT']}`;
-          const robotDefinition = robotsFilteredMap.get(entryId);
-          const tempsParUnite = Number(robotDefinition?.temps_par_unite) || 0; // Utilisation de 0 si non trouvé ou non numérique
-
           const entry: any = {
             ...rawEntry,
             'NB UNITES DEPUIS DEBUT DU MOIS': String(rawEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']),
           };
-
           for (let i = 1; i <= 31; i++) {
             const dayColumn = `JOUR${i}`;
             if (entry[dayColumn]) {
-              const value = (Number(entry[dayColumn]) || 0) * tempsParUnite;
+              const value = Number(entry[dayColumn]) || 0;
               dailyTotals[i - 1] += value;
             }
           }
-          totalUnitsSinceMonthStart += (Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0) * tempsParUnite;
+          totalUnitsSinceMonthStart += Number(entry['NB UNITES DEPUIS DEBUT DU MOIS']) || 0;
         }
 
         //Construire mergedData (AGENCE='TOUT' pour signaler Chart4All)
         const mergedData: DataEntry = {
           AGENCE: 'TOUT',
           'NOM ROBOT': activeAgency === 'TOUT' ? 'Tous les robots' : `Tous les robots - ${activeAgency}`,
-          'NB UNITES DEPUIS DEBUT DU MOIS': String(formatNumber(totalUnitsSinceMonthStart)), // Formatage ici pour affichage
+          'NB UNITES DEPUIS DEBUT DU MOIS': String(totalUnitsSinceMonthStart),
           ...Object.fromEntries(
             dailyTotals.map((total, i) => {
               const day = (i + 1).toString().padStart(2, '0');
@@ -317,17 +312,13 @@ export default function Dashboard() {
         setRobotDataForBarChart(mergedData);
         setUseChart4All(true);
 
-        // Calculer les totaux mensuels sur le même périmètre filtré SANS appliquer temps_par_unite ici directement
-        // La multiplication est faite au niveau des reportingEntries individuelles
+        // Calculer les totaux mensuels sur le même périmètre filtré
         const calcTotalForMonth = (monthKey: 'N' | 'N-1' | 'N-2' | 'N-3') => {
           const dataset = getReportingData(monthKey);
           return dataset.reduce((acc, e) => {
             const entryId = `${e.AGENCE}_${e['NOM_ROBOT']}`;
-            const robotDefinition = robotsFilteredMap.get(entryId); // Récupérer la définition du robot
-            const tempsParUnite = Number(robotDefinition?.temps_par_unite) || 0;
-
-            if (robotsFilteredMap.has(entryId)) { // Utiliser robotsFilteredMap
-              return acc + (Number(e['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0) * tempsParUnite;
+            if (robotIdsFiltered.has(entryId)) {
+              return acc + (Number(e['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) || 0);
             }
             return acc;
           }, 0);

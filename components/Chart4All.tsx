@@ -60,6 +60,7 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
 //console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
+//console.log('Chart4All: cachedRobots4Agencies ', cachedRobots4Agencies);
 
 // États locaux du composant :
 // robots : tableau de robots filtrés pour l'affichage dans la section "Le saviez-vous ?"
@@ -74,7 +75,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   // Effet pour gérer le défilement automatique du carrousel
   useEffect(() => {
     //console.log('Chart4All: Initialisation du carrousel');
-    console.log('Chart4All: cachedRobots4Agencies ', cachedRobots4Agencies);
+    //console.log('Chart4All: cachedRobots4Agencies ', cachedRobots4Agencies);
     
     const handleRobotDataUpdate = () => {
       //console.log('Chart4All: Mise à jour des données robots', cachedRobots4Agencies.length);

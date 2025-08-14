@@ -462,7 +462,7 @@ export async function initializeReportingData(): Promise<void> {
       months.push(anneeMois);
     }
     
-    console.log('Mois à récupérer:', months);
+    //console.log('Mois à récupérer:', months);
     
     // Faire 4 appels API distincts
     const ReportingDataDe_N = await fetchReportingData(months[0]);
@@ -537,7 +537,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
       ...cachedReportingData.prevMonth3
     ];
 
-    // Extraire les codes d'agence uniques
+    // Extraire les codes d'agence uniques 
     const agencyCodeInReporting = new Set<string>();
     allReportingEntries.forEach((entry: ReportingEntry) => {
       if (entry.AGENCE && entry.AGENCE !== 'TOUT') {
@@ -545,7 +545,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
       }
     });
 
-    console.log('(dataStore - initializeRobots4Agencies) Agences trouvées dans les données de reporting (cachedReportingData):', Array.from(agencyCodeInReporting));
+    //console.log('(dataStore - initializeRobots4Agencies) Agences trouvées dans les données de reporting (cachedReportingData):', Array.from(agencyCodeInReporting));
 
     // Filtrer les robots pour ne garder que ceux des agences présentes dans le reporting
     const filteredRobots = cachedRobotsFromTableBaremeReport.filter(robot => {
@@ -570,7 +570,7 @@ export async function initializeRobots4Agencies(): Promise<void> {
     // Mettre à jour cachedRobots4Agencies
     cachedRobots4Agencies = withLabels;
     
-    console.log('Robots filtrés pour les agences du reporting:', cachedRobots4Agencies);
+    console.log('(dataStore - initializeRobots4Agencies) Robots filtrés pour les agences du reporting (cachedRobots4Agencies):', cachedRobots4Agencies);
     
     // Notifier les abonnés du changement
     notifyRobotDataListeners();
@@ -580,11 +580,6 @@ export async function initializeRobots4Agencies(): Promise<void> {
     throw error;
   }
 }
-
-// function createMergedData(doc: any, monthLabel: string): MergedData {
-//   // Implémentation à ajouter
-//   return {} as MergedData;
-// }
 
 interface MergedData {
   [key: string]: any;
