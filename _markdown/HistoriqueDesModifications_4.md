@@ -188,6 +188,8 @@ La liste des robots agrégés était affichée dans un tooltip au survol des bar
 5.  **Gestion de la fermeture du tooltip au clic en dehors** : Pour améliorer l'expérience utilisateur, un `useRef` (`tooltipRef`) et un `useEffect` (lignes 170-180) ont été mis en place. Ce mécanisme permet de détecter un clic en dehors du tooltip des robots agrégés, fermant automatiquement celui-ci si un tel clic se produit.
 
 Ces modifications permettent de fournir une interface utilisateur plus contrôlée pour l'affichage des détails des robots, en passant d'un comportement passif (survol) à un comportement actif (double-clic).
+
+
 ## 2025-08-14 - Ajout de l'attribut 'temps_par_unite' aux robots dans le tooltip de Chart4All.tsx
 
 ### Description des modifications
@@ -276,6 +278,9 @@ Suite à la demande de l'utilisateur, l'attribut `temps_par_unite` a été ajout
 3.  Double-cliquer sur une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
 4.  Vérifier que la fenêtre du tooltip affiche la liste des noms des robots regroupés ainsi que leur `temps_par_unite` respectif au format "(X min/unité)".
 5.  S'assurer que l'affichage est correct et lisible.
+
+
+
 ## 2025-08-14 - Changement du déclenchement du tooltip (double-clic vers simple clic) dans Chart4All.tsx
 
 ### Description des modifications
@@ -326,3 +331,25 @@ Afin d'améliorer l'expérience utilisateur, le déclenchement du tooltip affich
 4.  Vérifier que le tooltip affichant la liste des robots agrégés apparaît.
 5.  S'assurer qu'un double-clic n'est plus nécessaire et ne déclenche pas une double ouverture ou un comportement inattendu.
 6.  Vérifier que le tooltip se ferme toujours correctement en cliquant en dehors.
+**README.md** file provides crucial configuration and setup instructions.
+**package.json** file provides essential metadata about the project, including its dependencies, scripts, and version.
+
+---
+
+
+## 15 Août 2025 - Ajout du nombre de traitements journaliers dans le tooltip des robots
+
+*   **Modification :**
+    *   Mise à jour du fichier `components/Chart4All.tsx`.
+    *   Importation de `cachedReportingData` et `getReportingDataForRobot` depuis `utils/dataStore.ts`.
+    *   Extension de l'interface des détails du robot dans `robotDataForTooltip` pour inclure `nombre_traitements_journaliers`.
+    *   Modification de la logique d'agrégation des `aggregatedRobotDetails` pour récupérer le nombre de traitements journaliers (du type `jourX`) pour chaque robot, en se basant sur la date sélectionnée et les données de `cachedReportingData`.
+    *   Mise à jour de l'affichage du tooltip pour inclure le nombre de traitements journaliers dans le format `(X Traitemts x Y min/unité)`.
+
+*   **Impact :**
+    *   Le tooltip affiché lors du survol des barres du graphique affiche désormais des informations plus détaillées sur la composition du gain, incluant le nombre de traitements effectués par chaque robot pour le jour donné.
+
+*   **Contexte :**
+    *   La tâche visait à enrichir le tooltip des robots dans `Chart4All.tsx` en ajoutant le nombre de traitements journaliers, afin d'offrir une meilleure visibilité sur la contribution individuelle de chaque robot au gain total. La valeur journalière est extraite de l'objet `ReportingData` (`cachedReportingData` dans `utils/dataStore.ts`) ce qui a nécessité la récupération spécifique du champ `jourX` de la `ReportingEntry` correspondante, où `X` est le jour du mois.
+
+    

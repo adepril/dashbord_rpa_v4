@@ -9,7 +9,7 @@ import { collection, getDocs } from 'firebase/firestore';
 // Fonction utilitaire permettant de formater des valeurs de temps/durée
 import { formatDuration } from '../lib/utils'
 // Importation des types et des données mises en cache concernant les robots 
-import { Robot, cachedRobots4Agencies, subscribeToRobotData, unsubscribeFromRobotData } from '../utils/dataStore';
+import { Robot, cachedRobots4Agencies, cachedReportingData, getReportingDataForRobot, subscribeToRobotData, unsubscribeFromRobotData } from '../utils/dataStore';
 
 // Définition des propriétés que ce composant attend
 interface ChartProps {
@@ -72,7 +72,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [isPaused, setIsPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRobotListTooltip, setShowRobotListTooltip] = useState(false);
-  const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string }[]; } | null>(null);
+  const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
 
   const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
@@ -183,7 +183,35 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
       aggregatedRobotDetails: (data1.aggregatedRobotNames || [])
         .map((robotName: string) => {
           const robotDetail = cachedRobots4Agencies.find(robot => robot.robot === robotName);
-          return robotDetail ? { name: robotName, temps_par_unite: robotDetail.temps_par_unite } : null;
+
+          if (!robotDetail) return null;
+
+          const dayOfMonth = new Date(dateKey.split('/').reverse().join('-')).getDate();
+          const dayProperty = `JOUR${dayOfMonth}`; // Assumons que la propriété est 'jourX'
+
+          const robotId = `${robotDetail.agence}_${robotName}`;
+          const reportingEntry = getReportingDataForRobot(robotId, selectedMonth);
+
+          // console.log('[DEBUG] --- Débogage Traitements Journaliers ---');
+          // console.log(`[DEBUG] Date Key (du graphique): ${dateKey}`);
+          // console.log(`[DEBUG] selectedMonth (du state): ${selectedMonth}`);
+          // console.log(`[DEBUG] Robot ID: ${robotId}`);
+          // console.log(`[DEBUG] Jour du mois extrait: ${dayOfMonth}`);
+           console.log(`[DEBUG] Nom de la propriété attendue (jourX): ${dayProperty}`);
+          // console.log(`[DEBUG] Reporting Entry trouvé:`, reportingEntry);
+          // if (reportingEntry) {
+          //   console.log(`[DEBUG] Valeur de reportingEntry[${dayProperty}]:`, (reportingEntry as any)[dayProperty]);
+          // }
+          // console.log('[DEBUG] ---------------------------------------');
+
+
+          const nombreTraitementsJournaliers = reportingEntry ? (reportingEntry as any)[dayProperty] || 0 : 0;
+
+          return {
+            name: robotName,
+            temps_par_unite: robotDetail.temps_par_unite,
+            nombre_traitements_journaliers: nombreTraitementsJournaliers
+          };
         })
         .filter(Boolean)
     };
@@ -243,9 +271,9 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                   stroke="#888888"
                   tickLine={false}
                   axisLine={false}
-                  tick={<CustomizedAxisTick x={0} y={0} payload={{
-                    value: ""
-                  }} />}
+                  tick={(props: any) => (
+                    <CustomizedAxisTick {...props} />
+                  )}
                   height={60}
                   tickFormatter={(t) => `${t}`} />
                 <ReferenceLine
@@ -361,8 +389,8 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
             <>
                 <p className="font-bold mt-2">Composition :</p>
                 <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
-                    {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string }, index: number) => (
-                        <li key={index} className="text-sm">{robot.name} ({robot.temps_par_unite} min/unité)</li>
+                    {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }, index: number) => (
+                        <li key={index} className="text-sm">{robot.name} ({robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité)</li>
                     ))}
                 </ul>
             </>
