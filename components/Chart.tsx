@@ -165,7 +165,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
                         if (robotType?.toLowerCase().includes("temps")) {
                           // Calculate gain and number of treatments for 'temps' robotType
                           const gain = 'Gain : ' + formatDuration(valeur*data.temps_par_unite.replace(",", "."));
-                          const nbTraitement = 'Nb traitement : ' + formatDuration(valeur).replace("min", "");
+                          const nbTraitement = 'Nb traitement : ' + valeur; //formatDuration(valeur).replace("min", "");
                           // Format the date for display
                           const dateFormatted = new Date(date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
                           return (

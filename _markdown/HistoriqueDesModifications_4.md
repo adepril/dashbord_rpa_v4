@@ -1,7 +1,7 @@
 # Historique des Modifications
 
 
-##  2025-08-14 - Multiplication par `temps_par_unite` pour la vue 'Chart4All.tsx'
+## 2025-08-14 - Multiplication par `temps_par_unite` pour la vue 'Chart4All.tsx'
 
 
 ### Fichiers modifiés
@@ -352,4 +352,19 @@ Afin d'améliorer l'expérience utilisateur, le déclenchement du tooltip affich
 *   **Contexte :**
     *   La tâche visait à enrichir le tooltip des robots dans `Chart4All.tsx` en ajoutant le nombre de traitements journaliers, afin d'offrir une meilleure visibilité sur la contribution individuelle de chaque robot au gain total. La valeur journalière est extraite de l'objet `ReportingData` (`cachedReportingData` dans `utils/dataStore.ts`) ce qui a nécessité la récupération spécifique du champ `jourX` de la `ReportingEntry` correspondante, où `X` est le jour du mois.
 
-    
+## 2025-08-15 - Correction : Affichage du nombre brut de traitements pour le type de robot 'temps'
+
+*   **Problème identifié :**
+    *   La fonction `formatDuration` était incorrectement appliquée au nombre de traitements pour les robots de type 'temps', ce qui entraînait un affichage erroné.
+
+*   **Modification :**
+    *   Suppression de l'application de la fonction `formatDuration` pour l'affichage du nombre de traitements brut.
+
+*   **Impact :**
+    *   Le nombre de traitements pour les robots de type 'temps' est désormais affiché sous sa forme brute, garantissant une représentation correcte des données.
+
+*   **Fichiers modifiés :**
+    *   Les fichiers spécifiques ne sont pas mentionnés dans la description originale, mais la correction concerne la logique d'affichage des traitements, probablement dans des composants liés aux graphiques ou aux tables.
+
+*   **Tests recommandés :**
+    *   Vérifier l'affichage des traitements pour les robots de type 'temps'. S'assurer que le nombre n'est plus formaté comme une durée mais comme une valeur numérique directe.
