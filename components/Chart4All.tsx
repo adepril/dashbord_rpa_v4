@@ -191,20 +191,6 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 
           const robotId = `${robotDetail.agence}_${robotName}`;
           const reportingEntry = getReportingDataForRobot(robotId, selectedMonth);
-
-          // console.log('[DEBUG] --- Débogage Traitements Journaliers ---');
-          // console.log(`[DEBUG] Date Key (du graphique): ${dateKey}`);
-          // console.log(`[DEBUG] selectedMonth (du state): ${selectedMonth}`);
-          // console.log(`[DEBUG] Robot ID: ${robotId}`);
-          // console.log(`[DEBUG] Jour du mois extrait: ${dayOfMonth}`);
-           console.log(`[DEBUG] Nom de la propriété attendue (jourX): ${dayProperty}`);
-          // console.log(`[DEBUG] Reporting Entry trouvé:`, reportingEntry);
-          // if (reportingEntry) {
-          //   console.log(`[DEBUG] Valeur de reportingEntry[${dayProperty}]:`, (reportingEntry as any)[dayProperty]);
-          // }
-          // console.log('[DEBUG] ---------------------------------------');
-
-
           const nombreTraitementsJournaliers = reportingEntry ? (reportingEntry as any)[dayProperty] || 0 : 0;
 
           return {
