@@ -165,7 +165,7 @@ content={({ payload, label }) => {
 ## 2025-08-14 - Modification de l'affichage des robots agrégés dans Chart4All.tsx
 
 ### Description des modifications
-La liste des robots agrégés était affichée dans un tooltip au survol des barres du graphique de gain de temps. Suite à la demande de l'utilisateur, ce comportement a été modifié pour afficher cette liste dans un tooltip distinct, activé par un double-clic sur la barre.
+La liste des robots agrégés était affichée dans un tooltip au survol des barres du graphique de gain de temps. Ce comportement a été modifié pour afficher cette liste dans un tooltip distinct, activé par un double-clic sur la barre.
 
 ### Changements apportés :
 1.  **Gestion des états locaux** : Trois nouveaux états locaux ont été ajoutés dans `components/Chart4All.tsx` (à partir de la ligne 70 environ) pour gérer l'affichage et les données du nouveau tooltip :
@@ -193,7 +193,7 @@ Ces modifications permettent de fournir une interface utilisateur plus contrôl�
 ## 2025-08-14 - Ajout de l'attribut 'temps_par_unite' aux robots dans le tooltip de Chart4All.tsx
 
 ### Description des modifications
-Suite à la demande de l'utilisateur, l'attribut `temps_par_unite` a été ajouté à l'affichage de chaque robot dans le tooltip de `Chart4All.tsx`.
+L'attribut `temps_par_unite` a été ajouté à l'affichage de chaque robot dans le tooltip de `Chart4All.tsx`.
 
 ### Changements apportés :
 1.  **Modification de l'interface `robotDataForTooltip`** :

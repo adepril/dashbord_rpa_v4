@@ -36,7 +36,7 @@ Remarques administratives
 ## 2025-08-11 - Implémentation complète de la table Evolutions (récupération et affichage)
 
 ### Contexte
-L'utilisateur a demandé l'implémentation de la récupération et de l'affichage des données de la table 'Evolutions' avec trois scénarios : toutes les agences, une seule agence, ou un seul robot. Les fonctions existantes dans `dataFetcher.ts` ont été revues et adaptées, et la requête SQL correspondante a été implémentée dans `app/api/sql/route.ts`.
+Implémentation de la récupération et de l'affichage des données de la table 'Evolutions' avec trois scénarios : toutes les agences, une seule agence, ou un seul robot. Les fonctions existantes dans `dataFetcher.ts` ont été revues et adaptées, et la requête SQL correspondante a été implémentée dans `app/api/sql/route.ts`.
 
 
 #### 1. Ajout du handler GET pour la table Evolutions dans l'API
