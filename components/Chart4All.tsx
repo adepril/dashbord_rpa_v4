@@ -74,6 +74,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [showRobotListTooltip, setShowRobotListTooltip] = useState(false);
   const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
     //console.log('Chart4All: Double-clic sur la barre', data, event);
@@ -126,6 +127,24 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
       };
     }
   }, [robots, isPaused]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+            setShowRobotListTooltip(false);
+            setRobotDataForTooltip(null);
+            setTooltipPosition(null);
+        }
+    };
+
+    if (showRobotListTooltip) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+}, [showRobotListTooltip, setShowRobotListTooltip, setRobotDataForTooltip, setTooltipPosition]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fonction pour changer l'état de pause/reprise du diaporama
   const handlePauseResume = () => {
@@ -213,25 +232,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 // Rendu principal du composant réparti en deux sections :
 // 1. Affichage de l'histogramme (gain de temps) et des totaux mensuels
 // 2. Section "Le saviez-vous ?" affichant des informations supplémentaires sur les robots
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
-            setShowRobotListTooltip(false);
-            setRobotDataForTooltip(null);
-            setTooltipPosition(null);
-        }
-    };
-
-    if (showRobotListTooltip) {
-        document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-}, [showRobotListTooltip, setShowRobotListTooltip, setRobotDataForTooltip, setTooltipPosition]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
