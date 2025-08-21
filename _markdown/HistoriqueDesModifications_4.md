@@ -368,3 +368,35 @@ Afin d'améliorer l'expérience utilisateur, le déclenchement du tooltip affich
 
 *   **Tests recommandés :**
     *   Vérifier l'affichage des traitements pour les robots de type 'temps'. S'assurer que le nombre n'est plus formaté comme une durée mais comme une valeur numérique directe.
+## 2025-08-21 - Correction de l'erreur d'ordre des Hooks dans Chart4All.tsx
+
+### Problème identifié
+L'application affichait une erreur "React has detected a change in the order of Hooks" dans le composant `Chart4All.tsx` lors du changement de mois via les boutons (N-1, N-2, N-3). Cette erreur était due au fait que certains hooks, notamment un `useEffect` (et initialement `useRef`), étaient appelés conditionnellement après des instructions `return` anticipées, ce qui viole les règles fondamentales des Hooks React.
+
+### Modifications apportées
+J'ai réorganisé le code dans `components/Chart4All.tsx` pour m'assurer que tous les hooks React sont déclarés au niveau racine du composant, avant toute logique conditionnelle ou instruction `return` anticipée.
+
+1.  **Regroupement des Hooks `useState`**: Les déclarations d'état (`useState`) pour `robots`, `currentIndex`, `isPaused`, `error`, `showRobotListTooltip`, `robotDataForTooltip` et `tooltipPosition` ont été déplacées au tout début du composant `Chart`.
+2.  **Déplacement de `useRef`**: La déclaration de `tooltipRef` (`useRef`) a également été déplacée aux côtés des autres hooks `useState` au début du composant.
+3.  **Déplacement de `useCallback`**: La fonction `handleBarClick` qui utilise `useCallback` a été déplacée pour être déclarée immédiatement après les hooks `useState` et `useRef`.
+4.  **Déplacement des `useEffect`**: Les trois blocs `useEffect` (gestion du carrousel, gestion du défilement, et gestion du clic à l'extérieur du tooltip) ont été déplacés et regroupés après les déclarations `useState`, `useRef` et `useCallback`.
+
+Ces modifications ont déplacé les sections de code suivantes :
+*   Les états `useState` (initialement lignes 70-76) vers le début du composant.
+*   `handleBarClick` (initialement ligne 78) vers le début du composant.
+*   Les `useEffect` (initialement lignes 91-128 et 218-234) vers le début du composant.
+*   `tooltipRef` (initialement ligne 216) vers le début du composant.
+
+### Impact et raisons
+*   **Conformité aux règles de React**: Cette réorganisation garantit que tous les Hooks sont appelés dans le même ordre et sans interruption à chaque rendu, respectant ainsi la "Règle des Hooks" de React.
+*   **Résolution du bug**: L'erreur "change in the order of Hooks" devrait être complètement résolue, permettant aux boutons de navigation des mois précédents de fonctionner correctement sans provoquer de pannes.
+*   **Clarté du code**: Le regroupement des déclarations de hooks améliore la lisibilité et la maintenance du composant en centralisant ses dépendances et effets de côté.
+
+### Fichiers modifiés
+- [`components/Chart4All.tsx`](components/Chart4All.tsx)
+
+### Tests recommandés
+1.  Lancer l'application.
+2.  Naviguer vers le tableau de bord.
+3.  Cliquer sur les boutons des mois précédents (N-1, N-2, N-3) sous le graphique pour vérifier que le comportement est normal et qu'aucune erreur de console liée aux Hooks n'apparaît.
+4.  Vérifier l'affichage du graphique et des données pour s'assurer que la fonctionnalité globale n'a pas été affectée.
