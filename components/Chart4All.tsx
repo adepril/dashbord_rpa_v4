@@ -1,7 +1,7 @@
 'use client'
 
 // Importations pour la création de graphiques avec Recharts
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine, Rectangle } from "recharts"
 // Importation de React ainsi que des hooks pour gérer l'état et les effets
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Importations pour interagir avec Firebase Firestore (bien que non utilisé directement ici)
@@ -56,6 +56,16 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
   );
 }
 
+// Composant personnalisé pour la forme de la barre afin de gérer la couleur persistante
+const CustomBarShape = (props: any) => {
+  const { fill, x, y, width, height, index, showRobotListTooltip, clickedBarIndex } = props;
+
+  // Si la modale est ouverte et que c'est la barre cliquée, utilisez #3333db
+  const barFill = (showRobotListTooltip && clickedBarIndex === index) ? '#3333db' : fill;
+
+  return <Rectangle x={x} y={y} width={width} height={height} fill={barFill} />;
+};
+
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
 export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
@@ -74,6 +84,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [showRobotListTooltip, setShowRobotListTooltip] = useState(false);
   const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
+  const [clickedBarIndex, setClickedBarIndex] = useState<number | null>(null); // Nouvel état pour l'index de la barre cliquée
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
@@ -82,10 +93,12 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
         setRobotDataForTooltip(data);
         setShowRobotListTooltip(true);
         setTooltipPosition({ x: event.clientX, y: event.clientY });
+        setClickedBarIndex(index); // Mettre à jour l'index de la barre cliquée
     } else {
         setRobotDataForTooltip(null);
         setShowRobotListTooltip(false);
         setTooltipPosition(null);
+        setClickedBarIndex(null); // Réinitialiser l'index si la modale se ferme
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -131,6 +144,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
             setShowRobotListTooltip(false);
             setRobotDataForTooltip(null);
             setTooltipPosition(null);
+            setClickedBarIndex(null); // Réinitialiser l'index de la barre cliquée lors de la fermeture de la modale
         }
     };
 
@@ -309,8 +323,9 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                     formatter: (value: number) => value === 0 ? '' : formatDuration(value)
                   }}
                   onClick={(data: any, index: number, event: React.MouseEvent) => handleBarClick(data, index, event)}
+                  shape={<CustomBarShape showRobotListTooltip={showRobotListTooltip} clickedBarIndex={clickedBarIndex} />}
                   activeBar={{
-                    fill: robotType?.toLowerCase() === "temps" ? '#3498db' : '#3333db'
+                    fill: '#3333db' // Couleur de survol standard
                   }}
                    />
               </BarChart>
@@ -358,7 +373,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 {showRobotListTooltip && robotDataForTooltip && tooltipPosition && (
     <div
         ref={tooltipRef}
-        className="fixed bg-white shadow-lg p-4 rounded-lg border border-gray-200 z-50 max-w-md"
+        className="fixed bg-gray-200 shadow-lg p-4 rounded-lg border border-gray-200 z-50 max-w-md"
         style={{ left: tooltipPosition.x + 10, top: tooltipPosition.y + 10 }} // Décalage pour ne pas superposer le curseur
     >
         <button
