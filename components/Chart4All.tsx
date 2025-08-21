@@ -298,16 +298,6 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                       <div className="bg-white shadow-md p-2 border border-gray-200 rounded text-sm">
                         <p className="font-bold">{dateFormatted}</p>
                         <p className="text-gray-600">{gain}</p>
-                        {/* {aggregatedRobotNames && aggregatedRobotNames.length > 0 && (
-                          <>
-                            <p className="font-bold mt-2">Robots regroupés :</p>
-                            <ul className="list-disc list-inside text-gray-600 max-h-40 overflow-y-auto">
-                              {aggregatedRobotNames.map((name: string, index: number) => (
-                                <li key={index}>{name}</li>
-                              ))}
-                            </ul>
-                          </>
-                        )} */}
                       </div>
                     );
                   }} />
@@ -369,35 +359,34 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
               <div className="mt-4 text-red-500">{error}</div>
                 {robots.length > 0 ? (
                   <>
-
-{showRobotListTooltip && robotDataForTooltip && tooltipPosition && (
-    <div
-        ref={tooltipRef}
-        className="fixed bg-gray-200 shadow-lg p-4 rounded-lg border border-gray-200 z-50 max-w-md"
-        style={{ left: tooltipPosition.x + 10, top: tooltipPosition.y + 10 }} // Décalage pour ne pas superposer le curseur
-    >
-        <button
-            onClick={() => setShowRobotListTooltip(false)}
-            className="absolute top-1 right-2 text-gray-500 hover:text-gray-700"
-        >
-            &times;
-        </button>
-        <p className="font-bold">{new Date(robotDataForTooltip.date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <p className="text-gray-600">Gain : {formatDuration(robotDataForTooltip.valeur)}</p>
-        {robotDataForTooltip.aggregatedRobotDetails && robotDataForTooltip.aggregatedRobotDetails.length > 0 && (
-            <>
-                <p className="font-bold mt-2">Composition :</p>
-                <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
-                    {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }, index: number) => (
-                        robot.nombre_traitements_journaliers > 0 && (
-                            <li key={index} className="text-sm">- {robot.name} : <br/>{robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité = {formatDuration(robot.nombre_traitements_journaliers * Number(robot.temps_par_unite.replace(',', '.')))}</li>
-                        )
-                    ))}
-                </ul>
-            </>
-        )}
-    </div>
-)}
+                  {showRobotListTooltip && robotDataForTooltip && tooltipPosition && (
+                      <div
+                          ref={tooltipRef}
+                          className="fixed bg-gray-200 shadow-lg p-4 rounded-lg border border-gray-200 z-50 max-w-md"
+                          style={{ left: tooltipPosition.x + 10, top: tooltipPosition.y + 10 }} // Décalage pour ne pas superposer le curseur
+                      >
+                          <button
+                              onClick={() => setShowRobotListTooltip(false)}
+                              className="absolute top-1 right-2 text-gray-500 hover:text-gray-700"
+                          >
+                              &times;
+                          </button>
+                          <p className="font-bold">{new Date(robotDataForTooltip.date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                          <p className="text-gray-600">Gain : {formatDuration(robotDataForTooltip.valeur)}</p>
+                          {robotDataForTooltip.aggregatedRobotDetails && robotDataForTooltip.aggregatedRobotDetails.length > 0 && (
+                              <>
+                                  <p className="font-bold mt-2"></p>
+                                  <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
+                                      {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }, index: number) => (
+                                          robot.nombre_traitements_journaliers > 0 && (
+                                              <li key={index} className="text-xs"><b>{robot.name} :</b> <br/>&nbsp;&nbsp;&nbsp;{robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité = {formatDuration(robot.nombre_traitements_journaliers * Number(robot.temps_par_unite.replace(',', '.')))}</li>
+                                          )
+                                      ))}
+                                  </ul>
+                              </>
+                          )}
+                      </div>
+                  )}
                     <div className="mt-4 px-4 pt-10" >
                       Robot : <span className="font-bold">{robots[currentIndex]?.robot}</span>
                     </div>
