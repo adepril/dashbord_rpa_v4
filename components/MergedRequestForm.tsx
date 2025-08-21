@@ -104,16 +104,6 @@ export default function MergedRequestForm({
       }
     };
     loadStatuts();
-
-    // const loadUsers = async () => {
-    //   try {
-    //     const usersData = await fetchAllUsers();
-    //     setUsers(usersData);
-    //   } catch (error) {
-    //     console.log('Erreur lors du chargement des utilisateurs:', error);
-    //   }
-    // };
-    // loadUsers();
   }, []);
 
   const handleStatusChange = (value: string) => {

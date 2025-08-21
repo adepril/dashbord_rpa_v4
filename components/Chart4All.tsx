@@ -110,16 +110,13 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   }, []);
 
   useEffect(() => {
-    //console.log('Chart4All: Vérification du défilement', { robotsLength: robots.length, isPaused });
     if (robots.length > 0 && !isPaused) {
-      //console.log('Chart4All: Démarrage du défilement automatique');
       const interval = setInterval(() => {
         setCurrentIndex(prevIndex => {
           const newIndex = (prevIndex + 1) % robots.length;
-          //console.log('Chart4All: Changement de robot', { prevIndex, newIndex });
           return newIndex;
         });
-      }, 5000); // Change de robot toutes les 5 secondes pour les tests
+      }, 20000); 
 
       return () => {
         //console.log('Chart4All: Arrêt du défilement');
@@ -377,7 +374,9 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                 <p className="font-bold mt-2">Composition :</p>
                 <ul className="list-none list-inside text-gray-600 max-w-full max-h-40 overflow-y-auto">
                     {robotDataForTooltip.aggregatedRobotDetails.map((robot: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }, index: number) => (
-                        <li key={index} className="text-sm">{robot.name} ({robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité)</li>
+                        robot.nombre_traitements_journaliers > 0 && (
+                            <li key={index} className="text-sm">- {robot.name} : <br/>{robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité = {formatDuration(robot.nombre_traitements_journaliers * Number(robot.temps_par_unite.replace(',', '.')))}</li>
+                        )
                     ))}
                 </ul>
             </>

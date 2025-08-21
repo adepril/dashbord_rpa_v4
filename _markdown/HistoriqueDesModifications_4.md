@@ -13,7 +13,7 @@
 - Dans la boucle d'agrégation des `reportingEntries`, j'ai récupéré le `temps_par_unite` pour chaque robot correspondant et l'ai appliqué aux calculs suivants :
     - `dailyTotals`: Les valeurs `JOURX` sont désormais multipliées par `temps_par_unite`.
     - `totalUnitsSinceMonthStart`: La somme des unités depuis le début du mois est multipliée par `temps_par_unite`.
-- La fonction interne `calcTotalForMonth` a également été mise à jour pour appliquer le `temps_par_unite` lors du calcul des totaux mensuels (`totalCurrentMonth`, `totalPrevMonth1`, `totalPrevMonth2`, `totalPrevMonth3`).
+    - La fonction interne `calcTotalForMonth` a également été mise à jour pour appliquer le `temps_par_unite` lors du calcul des totaux mensuels (`totalCurrentMonth`, `totalPrevMonth1`, `totalPrevMonth2`, `totalPrevMonth3`).
 
 ### Impact et raisons
 - Objectif : Assurer que l'agrégation des données (`NB_UNITES_DEPUIS_DEBUT_DU_MOIS` et les valeurs `JOURX`) reflète correctement le "temps consommé" en minutes plutôt que le simple nombre d'unités, en multipliant par l'attribut `temps_par_unite` de chaque robot.
@@ -280,7 +280,6 @@ L'attribut `temps_par_unite` a été ajouté à l'affichage de chaque robot dans
 5.  S'assurer que l'affichage est correct et lisible.
 
 
-
 ## 2025-08-14 - Changement du déclenchement du tooltip (double-clic vers simple clic) dans Chart4All.tsx
 
 ### Description des modifications
@@ -325,8 +324,8 @@ Afin d'améliorer l'expérience utilisateur, le déclenchement du tooltip affich
 - [`components/Chart4All.tsx`](components/Chart4All.tsx)
 
 ### Tests recommandés
-1.  Lancer l'application et naviguer vers le tableau de bord.
-2.  Sélectionner l'option "TOUT" pour les agences ou pour les robots (ou les deux).
+1.  Lancer l'application.
+2.  Naviguer vers le tableau de bord.
 3.  **Cliquer une seule fois** sur une barre de l'histogramme dans le graphique de la vue agrégée (`Chart4All.tsx`).
 4.  Vérifier que le tooltip affichant la liste des robots agrégés apparaît.
 5.  S'assurer qu'un double-clic n'est plus nécessaire et ne déclenche pas une double ouverture ou un comportement inattendu.
@@ -400,3 +399,37 @@ Ces modifications ont déplacé les sections de code suivantes :
 2.  Naviguer vers le tableau de bord.
 3.  Cliquer sur les boutons des mois précédents (N-1, N-2, N-3) sous le graphique pour vérifier que le comportement est normal et qu'aucune erreur de console liée aux Hooks n'apparaît.
 4.  Vérifier l'affichage du graphique et des données pour s'assurer que la fonctionnalité globale n'a pas été affectée.
+
+## 2025-08-21 - Affichage conditionnel des détails du robot dans Chart4All.tsx
+
+### Description des modifications
+La ligne du tooltip affichant les détails d'un robot (nom, nombre de traitements journaliers et temps par unité) est désormais affichée de manière conditionnelle. Cette condition est appliquée directement à l'élément `<li>` à l'intérieur de la boucle `map` qui parcourt `aggregatedRobotDetails`. L'élément `<li>` s'affichera uniquement si la propriété `nombre_traitements_journaliers` du robot est supérieure à 0.
+
+### Changements apportés :
+1.  **Application de la condition de rendu à l'élément `<li>`** :
+    *   La ligne 381 dans `components/Chart4All.tsx` (qui est l'élément `<li>` affichant les détails du robot) a été enveloppée d'une expression conditionnelle : `robot.nombre_traitements_journaliers > 0 && (...)`. Cela inclut l'ensemble de la balise `<li>` et son contenu dans la condition.
+
+    *   Fichier : [`components/Chart4All.tsx`](components/Chart4All.tsx)
+    *   **Extrait de code pertinent (avant/après) :**
+        ```typescript
+        // Avant (ligne 381)
+                            <li key={index} className="text-sm">{robot.name} ({robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité)</li>
+
+        // Après (lignes 380-382, la ligne 380 étant la condition elle-même)
+                            {robot.nombre_traitements_journaliers > 0 && (
+                                <li key={index} className="text-sm">- {robot.name} : <br/>{robot.nombre_traitements_journaliers} Traitemts x {robot.temps_par_unite} min/unité = {formatDuration(robot.nombre_traitements_journaliers * Number(robot.temps_par_unite.replace(',', '.')))}</li>
+                            )}
+        ```
+
+### Impact des modifications
+*   Le tooltip du graphique dans `Chart4All.tsx` affichera les détails d'un robot agrégé (nom, traitements, temps/unité) uniquement si le nombre de traitements journaliers de ce robot est positif. Cela permet d'éviter l'affichage de lignes superflues pour les robots n'ayant effectué aucun traitement pour la journée sélectionnée.
+*   Amélioration de la clarté et de la pertinence des informations affichées dans le tooltip, en filtrant les entrées non pertinentes.
+
+### Fichiers modifiés
+- [`components/Chart4All.tsx`](components/Chart4All.tsx)
+
+### Tests recommandés
+1.  Lancer l'application et naviguer vers le tableau de bord.
+2.  Sélectionner des agences ou des robots où certains enregistrements ont `nombre_traitements_journaliers` à 0 ou non défini.
+3.  Cliquer sur une barre du graphique dans `Chart4All.tsx` pour afficher le tooltip.
+4.  Vérifier que les robots avec `nombre_traitements_journaliers = 0` ne sont pas listés dans la section "Composition", tandis que ceux avec `nombre_traitements_journaliers > 0` sont bien affichés.
