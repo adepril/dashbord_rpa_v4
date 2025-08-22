@@ -1,4 +1,4 @@
-# Analyse détaillée de la fonction loadProgramData — Alignée au code du 2025-08-06
+# Analyse détaillée de la fonction loadProgramData 
 
 Note de version: Aligné avec l’état du code au 2025-08-06. Les références de champs et les flux reflètent le fonctionnement réel des composants et du data store.
 
