@@ -4,6 +4,8 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLin
 import React, { useState, useEffect } from 'react';
 import { formatDuration } from '../lib/utils'
 import { Robot, cachedRobots4Agencies } from '../utils/dataStore';
+import { Button } from "@/components/ui/button";
+import UsersTableModal from './UsersTableModal';
 
 interface ChartProps {
   robotType: string
@@ -51,6 +53,7 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 export default function Chart({ robotType, data, selectedAgency, setSelectedMonth,selectedMonth , totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
 
     //console.log("Chart.tsx - data:", data);
+    //console.log("Chart.tsx - selectedService (data.service):", data.service);
     // console.log("Chart.tsx - selectedmonth:", selectedMonth);
     // console.log("Chart.tsx - totalCurrentMonth:", totalCurrentMonth);
     // console.log("Chart.tsx - totalPrevMonth1:", totalPrevMonth1);
@@ -66,6 +69,7 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
     const [robots, setRobots] = useState<Robot[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showUsersTableModal, setShowUsersTableModal] = useState(false);
 
     const currentDate = new Date();
     let displayMonth = currentDate.getMonth() + 1;
@@ -116,8 +120,18 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
             {/* Histogram */}
             {data ? (
               <>
-                <div className="ml-[10%] text-left text-xl font-bold mb-4">
-                  {robotType?.toLowerCase().includes('temps') ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'} 
+                <div className="flex justify-between items-center mb-4">
+                  <div className="ml-[10%] text-left text-xl font-bold">
+                    {robotType?.toLowerCase().includes('temps') ? 'Gain de temps  ('+data.temps_par_unite+' min / traitement)' : 'Sécurisation des processus'}
+                  </div>
+                  {data?.service.toLowerCase() === 'douane' && (
+                    <Button
+                      onClick={() => setShowUsersTableModal(true)}
+                      className="mr-4 bg-[#3498db] hover:bg-[#3333db] text-white"
+                    >
+                      Tableau des utilisateurs Douane
+                    </Button>
+                  )}
                 </div>
                 <div className="absolute top-2 right-2 text-black px-2 py-1 ">
                   {robotType?.toLowerCase() === "autre" && (
@@ -280,6 +294,11 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
       </div>
 
     </div>
+    
+    <UsersTableModal
+      open={showUsersTableModal}
+      onOpenChange={setShowUsersTableModal}
+    />
   </>
   );
 }

@@ -778,6 +778,7 @@ useEffect(() => {
                         monthLabelPrev1={getMonthLabelPrevMonth1()}
                         monthLabelPrev2={getMonthLabelPrevMonth2()}
                         monthLabelPrev3={getMonthLabelPrevMonth3()}
+                        selectedService={selectedService}
                       />
                     ) : (
                       /* Graphique pour un robot spécifique */

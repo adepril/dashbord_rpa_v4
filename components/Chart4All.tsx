@@ -4,6 +4,8 @@
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine, Rectangle } from "recharts"
 // Importation de React ainsi que des hooks pour gérer l'état et les effets
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Button } from "@/components/ui/button";
+import UsersTableModal from './UsersTableModal';
 // Importations pour interagir avec Firebase Firestore (bien que non utilisé directement ici)
 import { collection, getDocs } from 'firebase/firestore';
 // Fonction utilitaire permettant de formater des valeurs de temps/durée
@@ -16,7 +18,7 @@ interface ChartProps {
   robotType: string
   data1: any
   totalCurrentMonth: number
-  totalPrevMonth1: number 
+  totalPrevMonth1: number
   totalPrevMonth2: number
   totalPrevMonth3: number
   selectedMonth: string, // 'N', 'N-1', 'N-2', 'N-3'
@@ -25,6 +27,7 @@ interface ChartProps {
   monthLabelPrev1: string
   monthLabelPrev2: string
   monthLabelPrev3: string
+  selectedService: string
 }
 
 // Interface définissant les propriétés utilisées pour personnaliser l'affichage des ticks sur l'axe X
@@ -67,9 +70,9 @@ const CustomBarShape = (props: any) => {
 };
 
 // Composant principal d'affichage du graphique et des infos additionnelles sur les robots
-export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
+export default function Chart({ robotType, data1, selectedMonth, setSelectedMonth, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3, selectedService }: ChartProps) {
 
-//console.log('Chart4All: Initialisation - data1:', data1, 'robotType:', robotType, 'selectedMonth:', selectedMonth);
+//console.log('Chart4All: Initialisation - data1:', data1, 'selectedService:', selectedService);
 //console.log('Chart4All: cachedRobots4Agencies ', cachedRobots4Agencies);
 
 // États locaux du composant :
@@ -85,6 +88,7 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
   const [robotDataForTooltip, setRobotDataForTooltip] = useState<{ date: string; valeur: number; aggregatedRobotDetails: { name: string, temps_par_unite: string, nombre_traitements_journaliers: number }[]; } | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number; } | null>(null);
   const [clickedBarIndex, setClickedBarIndex] = useState<number | null>(null); // Nouvel état pour l'index de la barre cliquée
+  const [showUsersTableModal, setShowUsersTableModal] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const handleBarClick = useCallback((data: any, index: number, event: React.MouseEvent) => {
@@ -253,7 +257,17 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
         <div className="w-2/3 pt-4 pb-2 bg-white rounded-lg shadow ml-2">
 
           <div className="h-[300px] relative">
-            <div className="ml-[10%] text-left text-xl font-bold mb-4">Gain de temps</div>
+            <div className="flex justify-between items-center mb-4">
+              <div className="ml-[10%] text-left text-xl font-bold">Gain de temps</div>
+              {selectedService.toLowerCase() === 'douane' && (
+                <Button
+                  onClick={() => setShowUsersTableModal(true)}
+                  className="mr-4 bg-[#3498db] hover:bg-[#3333db] text-white"
+                >
+                  Tableau des utilisateurs Douane
+                </Button>
+              )}
+            </div>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
@@ -448,6 +462,11 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
         </div>
 
     </div>
+    
+    <UsersTableModal
+      open={showUsersTableModal}
+      onOpenChange={setShowUsersTableModal}
+    />
     </>
   );
 }
