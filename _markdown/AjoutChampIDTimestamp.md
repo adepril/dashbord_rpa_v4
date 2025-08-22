@@ -1,7 +1,7 @@
 # Ajout du champ ID timestamp - 07/08/2025
 
 ## Contexte
-Le client a demandé d'ajouter le champ 'ID' (timestamp) dans l'enregistrement des demandes dans la table 'Evolutions'.
+Ajouter le champ 'ID' (timestamp) dans l'enregistrement des demandes dans la table 'Evolutions'.
 
 ## Modifications nécessaires
 

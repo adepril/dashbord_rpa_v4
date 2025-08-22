@@ -1,1 +1,1 @@
-NE PAS ECRIRE
+NE PAS ECRIRE DANS CE FICHIER. A la place, écrire les modifications dans 'HistoriqueDesModifications_X.md' (ou X est un nombre) à la suite des dernières modifications en date.

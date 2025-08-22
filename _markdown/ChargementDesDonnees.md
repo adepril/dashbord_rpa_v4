@@ -1,8 +1,8 @@
-# Analyse Détaillée du Chargement des Données dans 'loadInitialData' — Alignée au code du 2025-08-06
+# Analyse Détaillée du Chargement des Données dans 'loadInitialData' — Alignée au code actuel
 
 ## Introduction
 
-Ce document présente une analyse détaillée du processus de chargement des données initial dans l'application Dashboard RPA BBL. La fonction `loadInitialData` est un élément central qui orchestre le chargement de toutes les données nécessaires au fonctionnement du tableau de bord. Note d’alignement: ce document a été vérifié et ajusté pour refléter l’état réel du code au 2025-08-06 (initializeReportingData en 4 appels mensuels avec gestion du 1er du mois; initializeRobots4Agencies; usage d’isAgencyInReportingData).
+Ce document présente une analyse détaillée du processus de chargement des données initial dans l'application Dashboard RPA BBL. La fonction `loadInitialData` est un élément central qui orchestre le chargement de toutes les données nécessaires au fonctionnement du tableau de bord. Note d'alignement: ce document a été mis à jour pour refléter l'état actuel du code.
 
 ## 1. La fonction loadInitialData dans Dashboard.tsx
 
@@ -15,34 +15,32 @@ const loadInitialData = async () => {
   try {
     setIsLoading(true);
     
-    // Étape 1: Charger toutes les agences
+    // Étape 1: Charger les données de reporting (4 derniers mois)
+    await initializeReportingData();
+    
+    // Étape 2: Charger toutes les agences
     await loadAllAgencies();
     
-    // Étape 2: Charger tous les robots
+    // Étape 3: Charger tous les robots
     await loadAllRobots();
-    setPrograms(cachedRobots);
-    // Ajout aligné 2025-08-06: initialiser la liste robots/agences basée sur la présence dans le reporting
-    // pour éviter des agences actives sans données et l'écran vide après sélection.
+    setPrograms(cachedRobotsFromTableBaremeReport);
     
-    // Étape 3: Charger les services
+    // Étape 4: Charger les services
     await loadAllServices();
     setAvailableServices(new Set(cachedServices));
     
-    // Étape 4: Charger les données de reporting
-    // Aligne 2025-08-06: initializeReportingData réalise 4 appels (N, N-1, N-2, N-3)
-    // et gère le cas du 1er jour du mois (bascule YYMM d’affichage).
-    await initializeReportingData();
-    
     // Étape 5: Récupérer et définir les données dans l'état du composant
-    const userAgencies = getCachedAllAgencies();
-    setAgencies(userAgencies);
+    const AllAgencies = getCachedAllAgencies();
+    setAllAgencies(AllAgencies);
+    updateAgencySelectability(userAgenceIds);
 
     // Définir l'agence par défaut
-    const defaultAgency = userAgencies.find(a => a.codeAgence === 'TOUT') || userAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
+    const defaultAgency = AllAgencies.find(a => a.isSelectable) ||
+                          AllAgencies.find(a => a.codeAgence === 'TOUT') ||
+                          AllAgencies[0] ||
+                          { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
     setSelectedAgency(defaultAgency);
-
-    // Aligné 2025-08-06: la disponibilité des agences côté UI est conditionnée
-    // par la présence dans cachedReportingData via isAgencyInReportingData.
+    setSelectedMonth('N');
     
     // Définir le service par défaut
     setSelectedService('TOUT');
@@ -68,12 +66,12 @@ const loadInitialData = async () => {
 ## 2. Fonctions de chargement des données dans dataStore.ts
 
 ### loadAllAgencies()
-**Fichier**: [`utils/dataStore.ts`](utils/dataStore.ts:99)
+**Fichier**: [`utils/dataStore.ts`](utils/dataStore.ts:105)
 
-**Description**: Charge toutes les agences depuis la table "AgencesV2" dans SQL Server.
+**Description**: Charge toutes les agences depuis la table "Agences" dans SQL Server.
 
 **Processus**:
-1. Effectue un appel API à `/api/sql?table=AgencesV2`
+1. Effectue un appel API à `/api/sql?table=Agences`
 2. Transforme les données reçues en objets `Agency` avec `codeAgence` et `libelleAgence`
 3. Stocke le résultat dans `cachedAllAgencies`
 4. Trie les agences par ordre alphabétique
@@ -82,15 +80,15 @@ const loadInitialData = async () => {
 - `cachedAllAgencies`: Variable globale qui stocke toutes les agences
 
 ### loadAllRobots()
-**Fichier**: [`utils/dataStore.ts`](utils/dataStore.ts:156)
+**Fichier**: [`utils/dataStore.ts`](utils/dataStore.ts:185)
 
 **Description**: Charge tous les robots depuis la table "Barem_Reporting" dans SQL Server.
 
 **Processus**:
 1. Effectue un appel API à `/api/sql?table=Barem_Reporting`
 2. Transforme les données reçues en objets `Program` avec toutes les propriétés nécessaires
-3. Ajoute une entrée "TOUT" au début de la liste pour la sélection globale
-4. Stocke le résultat dans `cachedRobots`
+3. Filtre explicitement les entrées "TOUT" des données brutes (l'option "TOUT" est gérée côté UI)
+4. Stocke le résultat dans `cachedRobotsFromTableBaremeReport`
 
 **Variables utilisées**:
 - `cachedRobots`: Variable globale qui stocke tous les robots
@@ -165,10 +163,13 @@ const loadInitialData = async () => {
 **Description**: Endpoint principal pour la récupération des données depuis SQL Server.
 
 **Tables gérées**:
-- `AgencesV2`: Récupération des agences
+- `Agences`: Récupération des agences
 - `Barem_Reporting`: Récupération des robots et programmes
 - `Services`: Récupération des services
 - `Reporting`: Récupération des données de reporting
+- `Statuts`: Gestion des statuts
+- `Utilisateurs`: Gestion des utilisateurs
+- `Evolutions`: Gestion des évolutions
 
 **Sécurité**:
 - Utilisation d'une liste blanche (`ALLOWED_TABLES`) pour prévenir l'injection SQL
@@ -176,9 +177,9 @@ const loadInitialData = async () => {
 
 ### Processus pour chaque table
 
-#### AgencesV2
+#### Agences
 ```sql
-SELECT [CODE_AGENCE],[LIBELLE_AGENCE] FROM [BD_RPA_TEST].[dbo].[AgencesV2] WHERE 1=1
+SELECT [CODE_AGENCE],[LIBELLE_AGENCE] FROM [BD_RPA_TEST].[dbo].[Agences] WHERE 1=1
 ```
 
 #### Barem_Reporting
@@ -262,7 +263,7 @@ graph TD
 - **Serveur**: `myreport01.alltransports.fr`
 
 ### Tables utilisées
-1. **AgencesV2**: Contient les informations sur les agences
+1. **Agences**: Contient les informations sur les agences
    - `CODE_AGENCE`: Code de l'agence
    - `LIBELLE_AGENCE`: Libellé de l'agence
 
