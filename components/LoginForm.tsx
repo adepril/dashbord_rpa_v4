@@ -62,7 +62,7 @@ export default function LoginForm() {
             }
 
             const userData = await response.json();
-            console.log('(LoginForm) User data from request response:', userData);
+            //console.log('(LoginForm) User data from request response:', userData);
             // updateFirstLoginStatus();
 
             // Nettoyer toutes les données précédentes avant de stocker les nouvelles

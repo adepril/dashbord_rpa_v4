@@ -262,7 +262,8 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
               {selectedService.toLowerCase() === 'douane' && (
                 <Button
                   onClick={() => setShowUsersTableModal(true)}
-                  className="mr-4 bg-[#3498db] hover:bg-[#3333db] text-white"
+                  //className="mr-4 bg-[#3498db] hover:bg-[#3333db] text-white"
+                  className="bg-neutral-950 text-neutral-100 border border-neutral-400 border-b-4 font-medium relative px-3 py-1 mr-2 rounded-lg hover:brightness-150 hover:border-t-4 active:opacity-75 duration-300"
                 >
                   Tableau des utilisateurs Douane
                 </Button>
