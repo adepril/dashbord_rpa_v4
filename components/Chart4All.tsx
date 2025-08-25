@@ -386,12 +386,12 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
                           >
                               &times;
                           </button>
-                          <p className="font-bold text-center">{new Date(robotDataForTooltip.date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                          <p className="text-gray-600 text-center"> {robotDataForTooltip.aggregatedRobotDetails.length} robot{robotDataForTooltip.aggregatedRobotDetails.length > 1 ? 's' : ''} 
+                          <p className="text-gray-600  text-center">{new Date(robotDataForTooltip.date.split('/').reverse().join('-')).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                          <p className="font-bold text-center"> {robotDataForTooltip.aggregatedRobotDetails.length} robot{robotDataForTooltip.aggregatedRobotDetails.length > 1 ? 's' : ''} 
                             &nbsp;- Gain : {formatDuration(robotDataForTooltip.valeur)}</p>
                           {robotDataForTooltip.aggregatedRobotDetails && robotDataForTooltip.aggregatedRobotDetails.length > 0 && (
                               <>
-                                  <p className="font-bold mt-2">Les meilleurs gains de temps :</p>
+                                  <p className="text-gray-600 text-sm mt-2"> &nbsp;Les meilleurs gains de temps :</p>
                                   <div className="overflow-x-auto max-h-100">
                                       <table className="min-w-full border-collapse text-sm">
                                           <thead>
