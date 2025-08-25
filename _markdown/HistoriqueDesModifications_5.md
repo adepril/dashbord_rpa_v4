@@ -145,3 +145,48 @@ export default function Chart({ robotType, data1, selectedMonth, setSelectedMont
 - Envisager d'externaliser la condition dans un hook personnalisé pour une meilleure réutilisabilité.
 - Possibilité d'ajouter d'autres conditions d'affichage basées sur d'autres services ou rôles utilisateur.
 - Ajouter des tests automatisés pour vérifier le comportement conditionnel du bouton.
+
+## 2025-08-25 - Correction du problème de rafraîchissement des widgets dans Chart.tsx
+
+### Description des modifications
+Correction du problème de rafraîchissement des widgets (mois courant, mois précédent, mois n-2, mois n-3) dans le composant `Chart.tsx`. Le problème était que les données ne sont pas mises à jour correctement lorsqu'on sélectionne un nouveau robot, bien que les données s'affichent correctement pour le premier robot sélectionné.
+
+### Problème identifié
+- Le composant `Chart.tsx` ne réagit pas aux changements de `data`, `totalCurrentMonth`, `totalPrevMonth1`, `totalPrevMonth2`, `totalPrevMonth3`, et `selectedMonth`.
+- Les données sont passées en tant que props, mais il n'y a pas de mécanisme pour forcer une re-renderisation du composant quand ces props changent.
+
+### Solution appliquée
+Ajout d'un `useEffect` dans `Chart.tsx` pour surveiller les changements de données et forcer une re-renderisation si nécessaire.
+
+### Changements apportés
+
+1. **Ajout du useEffect dans Chart.tsx (lignes 80-85) :**
+```typescript
+  // Ajout d'un effet pour surveiller les changements de données et forcer une re-renderisation
+  useEffect(() => {
+    console.log("Chart.tsx - données mises à jour:", data);
+    console.log("Chart.tsx - mois sélectionné:", selectedMonth);
+    console.log("Chart.tsx - totaux mensuels:", totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3);
+  }, [data, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, selectedMonth]);
+```
+
+### Impact et raisons
+- **Objectif :** Forcer une mise à jour du composant `Chart.tsx` chaque fois que les données ou le mois sélectionné changent.
+- **Logique :** Le `useEffect` surveille les changements des props `data`, `totalCurrentMonth`, `totalPrevMonth1`, `totalPrevMonth2`, `totalPrevMonth3`, et `selectedMonth`.
+- **Expérience utilisateur :** Les widgets s'affichent correctement pour chaque robot sélectionné, améliorant ainsi l'expérience utilisateur.
+- **Maintenabilité :** Le code est maintenant plus robuste et facile à maintenir grâce à l'utilisation d'un effet pour surveiller les changements de données.
+
+### Fichiers modifiés
+- [`components/Chart.tsx`](components/Chart.tsx) - Ajout du useEffect pour surveiller les changements de données
+
+### Tests recommandés
+1. Lancer l'application et naviguer vers le tableau de bord.
+2. Sélectionner un robot et vérifier que les données s'affichent correctement.
+3. Sélectionner un autre robot et vérifier que les données sont mises à jour correctement.
+4. Vérifier que les logs dans la console indiquent que les données ont été mises à jour.
+5. Tester avec différents robots et mois pour s'assurer que la mise à jour fonctionne correctement.
+
+### Notes pour l'évolution future
+- Envisager d'ajouter des tests automatisés pour vérifier le comportement de mise à jour des données.
+- Possibilité d'optimiser les logs pour ne pas affecter les performances en production.
+- Ajouter des commentaires pour expliquer le besoin de l'effet de mise à jour.

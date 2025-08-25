@@ -181,20 +181,20 @@ export default function Dashboard() {
           // Définir l'agence par défaut (la première sélectionnable ou 'TOUT')
           const defaultAgency = AllAgencies.find(a => a.isSelectable) || AllAgencies.find(a => a.codeAgence === 'TOUT') || AllAgencies[0] || { codeAgence: 'TOUT', libelleAgence: 'TOUT' };
           setSelectedAgency(defaultAgency);
-          console.log('(Dashboard / loadInitialData) Agence par défaut:', defaultAgency)
+          //console.log('(Dashboard / loadInitialData) Agence par défaut:', defaultAgency)
 
           // Étape 3: Charger tous les robots
           await loadAllRobots();
-          console.log('(Dashboard / loadInitialData) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
+          //console.log('(Dashboard / loadInitialData) Tous les robots chargés en cache:', cachedRobotsFromTableBaremeReport);
           setRobots(cachedRobotsFromTableBaremeReport);
 
           //Etape 4: Charger les services de la table 'Services'
           await loadAllServices();
-          console.log('(Dashboard / loadInitialData) Tous les services chargés en cache (cachedServices):', cachedServices);
+          //console.log('(Dashboard / loadInitialData) Tous les services chargés en cache (cachedServices):', cachedServices);
           setAvailableServices(new Set(cachedServices));
           // Définir le service par défaut
           setSelectedService('TOUT'); //?
-          console.log('(Dashboard / loadInitialData)  Service par défaut: TOUT');
+          //console.log('(Dashboard / loadInitialData)  Service par défaut: TOUT');
 
           setSelectedMonth('N'); // Réinitialiser le mois sélectionné à 'N'
           //console.log('(Dashboard / initializeReportingData) loadInitialData - Mois sélectionné:', selectedMonth);
@@ -353,8 +353,8 @@ export default function Dashboard() {
         } else {
           // ***************** Préparation des données pour Chart.tsx ************************
           setUseChart4All(false);
-          const tpsParUnit = selectedRobotDataFromBareme?.temps_par_unite === '0' ? '0' : selectedRobotDataFromBareme?.temps_par_unite;
-
+          const tpsParUnit = selectedRobotDataFromBareme?.temps_par_unite === '0' ? '0' : selectedRobotDataFromBareme?.temps_par_unite.replace(",", ".");
+          console.log('[Dashboard] loadRobotData (specific) tpsParUnit:', tpsParUnit);
           const robotEntry = (() => {
             switch(selectedMonth) {
               case 'N':
@@ -387,7 +387,7 @@ export default function Dashboard() {
               ...robotEntry,
               'NB UNITES DEPUIS DEBUT DU MOIS': tpsParUnit !== '0'
                 ? String(Number(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']))
-                : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), // Correction ici
+                : String(robotEntry['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']), 
               ...selectedRobotDataFromBareme,
               agenceLbl: resolvedAgenceLbl
             };
@@ -407,10 +407,15 @@ export default function Dashboard() {
           const prevMonth3Data = cachedReportingData.prevMonth3.find((entry: ReportingEntry) =>
             `${entry.AGENCE}_${entry['NOM_ROBOT']}` === `${selectedRobotDataFromBareme?.agence}_${selectedRobotDataFromBareme?.robot}`);
 
-          setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-          setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-          setTotalPrevMonth2(prevMonth2Data ? Number(prevMonth2Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
-          setTotalPrevMonth3(prevMonth3Data ? Number(prevMonth3Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS']) : 0);
+          console.log('[Dashboard] loadRobotData (specific) - currentMonthData:', currentMonthData);
+          console.log('[Dashboard] loadRobotData (specific) - prevMonth1Data:', prevMonth1Data);
+          console.log('[Dashboard] loadRobotData (specific) - prevMonth2Data:', prevMonth2Data);
+          console.log('[Dashboard] loadRobotData (specific) - prevMonth3Data:', prevMonth3Data);
+
+          setTotalCurrentMonth(currentMonthData ? Number(currentMonthData['NB_UNITES_DEPUIS_DEBUT_DU_MOIS'])*Number(tpsParUnit) : 0);
+          setTotalPrevMonth1(prevMonth1Data ? Number(prevMonth1Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS'])*Number(tpsParUnit) : 0);
+          setTotalPrevMonth2(prevMonth2Data ? Number(prevMonth2Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS'])*Number(tpsParUnit) : 0);
+          setTotalPrevMonth3(prevMonth3Data ? Number(prevMonth3Data['NB_UNITES_DEPUIS_DEBUT_DU_MOIS'])*Number(tpsParUnit) : 0);
         }
       setSelectedRobot(currentRobot);
     }

@@ -51,11 +51,17 @@ const CustomizedAxisTick: React.FC<CustomizedAxisTickProps> = (props) => {
 }
 
 export default function Chart({ robotType, data, selectedAgency, setSelectedMonth,selectedMonth , totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, monthLabelCurrent, monthLabelPrev1, monthLabelPrev2, monthLabelPrev3 }: ChartProps) {
-
-    //console.log("Chart.tsx - data:", data);
+    
+  //console.log("Chart.tsx - data:", data);
+  let TempsParUnite = 0;
+    if(data) {
+      TempsParUnite = data.temps_par_unite;
+    }
+    //console.log("Chart.tsx - TempsParUnite:", TempsParUnite);
     //console.log("Chart.tsx - selectedService (data.service):", data.service);
     // console.log("Chart.tsx - selectedmonth:", selectedMonth);
     // console.log("Chart.tsx - totalCurrentMonth:", totalCurrentMonth);
+    //console.log("Chart.tsx - currentMonth:", currentMonth);
     // console.log("Chart.tsx - totalPrevMonth1:", totalPrevMonth1);
     // console.log("Chart.tsx - totalPrevMonth2:", totalPrevMonth2);
     // console.log("Chart.tsx - totalPrevMonth3:", totalPrevMonth3);
@@ -70,6 +76,13 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showUsersTableModal, setShowUsersTableModal] = useState(false);
+  
+    // Ajout d'un effet pour surveiller les changements de données et forcer une re-renderisation
+    useEffect(() => {
+      console.log("Chart.tsx - données mises à jour:", data);
+      console.log("Chart.tsx - mois sélectionné:", selectedMonth);
+      console.log("Chart.tsx - totaux mensuels:", totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3);
+    }, [data, totalCurrentMonth, totalPrevMonth1, totalPrevMonth2, totalPrevMonth3, selectedMonth]);
 
     const currentDate = new Date();
     let displayMonth = currentDate.getMonth() + 1;
@@ -224,32 +237,48 @@ export default function Chart({ robotType, data, selectedAgency, setSelectedMont
           
           <div className="flex justify-around ">
             <div className="w-full grid grid-cols-4 gap-4 mt-12 mb-4 ml-5 mr-5 rounded-lg ">
-              {data && Object.keys(data).length > 0 ? (
+              {/* {data && Object.keys(data).length > 0 ? ( */}
                 <>
 
                     <div className={selectedMonth?.toLowerCase()==='n' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelCurrent}</h3>
-                      <p className="text-2xl  font-bold pl-5">{formatDuration(totalCurrentMonth*data.temps_par_unite.replace(",", "."))} </p> 
+                      {totalCurrentMonth > 0 ? (
+                        <p className="text-2xl  font-bold pl-5">{formatDuration(totalCurrentMonth)} </p> 
+                      ) : (
+                        <p className="text-2xl  font-bold pl-5">Aucune donnée</p>
+                      )}
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-1' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-1')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev1}</h3>
-                      <p className="text-2xl font-bold pl-5 ">{formatDuration(totalPrevMonth1*data.temps_par_unite.replace(",", "."))} </p>
+                      {totalPrevMonth1 > 0 ? (
+                      <p className="text-2xl font-bold pl-5 ">{formatDuration(totalPrevMonth1)} </p>
+                      ) : (
+                        <p className="text-2xl  font-bold pl-5">Aucune donnée</p>
+                      )}
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-2' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-2')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev2}</h3>
-                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth2*data.temps_par_unite.replace(",", "."))}</p>
+                      {totalPrevMonth2 > 0 ? (
+                        <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth2)} </p>
+                      ) : (
+                        <p className="text-2xl  font-bold pl-5">Aucune donnée</p>
+                      )}
                     </div>
                     <div className={selectedMonth?.toLowerCase()==='n-3' ? ('bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer') : ('bg-[#3498db] hover:bg-[#3333db] text-white shadow-md rounded-lg py-2 cursor-pointer')} onClick={() => setSelectedMonth('N-3')}>
                       <h3 className="text-2lg font-semibold pl-2">{monthLabelPrev3}</h3>
-                      <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth3*data.temps_par_unite.replace(",", "."))}</p>
+                      {totalPrevMonth3 > 0 ? (
+                        <p className="text-2xl font-bold pl-5">{formatDuration(totalPrevMonth3)} </p>
+                      ) : (
+                        <p className="text-2xl  font-bold pl-5">Aucune donnée</p>
+                      )}
                     </div>
 
                 </>
-              ) : (
+              {/* ) : (
               <div className="flex justify-center items-center h-[60px] text-gray-500">
                 Aucune donnée disponible
               </div>
-              )}
+              )} */}
               {/* // fin Indicateurs mensuels */}
             </div>
           </div>
